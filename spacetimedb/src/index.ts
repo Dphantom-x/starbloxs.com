@@ -137,8 +137,8 @@ type Ctx = ReducerCtx<InferSchema<typeof spacetimedb>>;
 const FIELD_W = 800;
 const FIELD_H = 600;
 const TICK_DT = 1 / 30; // seconds; matches the ~30Hz schedule
-const BASE_SPEED = 220; // tank drive speed px/s
-const TANK_R = 15;
+const BASE_SPEED = 185; // tank drive speed px/s (eased down for the maze)
+const TANK_R = 11; // smaller tanks fit the tighter maze
 const SHELL_R = 4;
 const SHELL_SPEED = 330;
 const FIRE_COOLDOWN_MS = 600;
@@ -191,38 +191,96 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-function inArena(x: number, y: number): boolean {
-  return x >= ARENA.x0 && x <= ARENA.x1 && y >= ARENA.y0 && y <= ARENA.y1;
+/** Does an axis-aligned wall segment intersect the rect [x0,y0,x1,y1]? */
+function segHitsRect(
+  w: Wall,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number
+): boolean {
+  if (w[0] === w[2]) {
+    const x = w[0];
+    const lo = Math.min(w[1], w[3]);
+    const hi = Math.max(w[1], w[3]);
+    return x >= x0 && x <= x1 && hi >= y0 && lo <= y1;
+  }
+  const y = w[1];
+  const lo = Math.min(w[0], w[2]);
+  const hi = Math.max(w[0], w[2]);
+  return y >= y0 && y <= y1 && hi >= x0 && lo <= x1;
 }
 
-/** Scattered axis-aligned maze walls (Tank-Trouble style), clear of the arena. */
+/** A connected corridor maze (recursive backtracker) with a clear central
+ *  combat zone. Seeded → each seed is a distinct, reproducible Tank-Trouble-
+ *  style layout. A few extra openings keep it loopy (not all dead ends). */
 function generateMaze(seed: number): Wall[] {
   const rng = mulberry32(seed);
-  const walls: Wall[] = [];
+  const COLS = 8;
+  const ROWS = 6;
   const CELL = 100;
-  for (let cx = 1; cx <= 7; cx++) {
-    for (let ry = 0; ry < 6; ry++) {
-      if (rng() < 0.26) {
-        const x = cx * CELL;
-        const y1 = ry * CELL;
-        const y2 = y1 + CELL;
-        if (inArena(x, (y1 + y2) / 2)) continue;
-        walls.push([x, y1, x, y2]);
+  const east: boolean[][] = [];
+  const south: boolean[][] = [];
+  for (let c = 0; c < COLS; c++) {
+    east[c] = [];
+    south[c] = [];
+    for (let r = 0; r < ROWS; r++) {
+      east[c][r] = true;
+      south[c][r] = true;
+    }
+  }
+  const seen: boolean[][] = Array.from({ length: COLS }, () =>
+    Array(ROWS).fill(false)
+  );
+  const stack: Array<[number, number]> = [[0, 0]];
+  seen[0][0] = true;
+  while (stack.length) {
+    const [c, r] = stack[stack.length - 1];
+    const nbrs: Array<[number, number, string]> = [];
+    if (r > 0 && !seen[c][r - 1]) nbrs.push([c, r - 1, 'N']);
+    if (c < COLS - 1 && !seen[c + 1][r]) nbrs.push([c + 1, r, 'E']);
+    if (r < ROWS - 1 && !seen[c][r + 1]) nbrs.push([c, r + 1, 'S']);
+    if (c > 0 && !seen[c - 1][r]) nbrs.push([c - 1, r, 'W']);
+    if (nbrs.length === 0) {
+      stack.pop();
+      continue;
+    }
+    const [nc, nr, dir] = nbrs[Math.floor(rng() * nbrs.length)];
+    if (dir === 'E') east[c][r] = false;
+    else if (dir === 'W') east[nc][nr] = false;
+    else if (dir === 'S') south[c][r] = false;
+    else south[nc][nr] = false; // 'N'
+    seen[nc][nr] = true;
+    stack.push([nc, nr]);
+  }
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) {
+      if (c < COLS - 1 && east[c][r] && rng() < 0.14) east[c][r] = false;
+      if (r < ROWS - 1 && south[c][r] && rng() < 0.14) south[c][r] = false;
+    }
+  }
+  const walls: Wall[] = [];
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) {
+      if (c < COLS - 1 && east[c][r]) {
+        const x = (c + 1) * CELL;
+        walls.push([x, r * CELL, x, (r + 1) * CELL]);
+      }
+      if (r < ROWS - 1 && south[c][r]) {
+        const y = (r + 1) * CELL;
+        walls.push([c * CELL, y, (c + 1) * CELL, y]);
       }
     }
   }
-  for (let ry = 1; ry <= 5; ry++) {
-    for (let cx = 0; cx < 8; cx++) {
-      if (rng() < 0.26) {
-        const y = ry * CELL;
-        const x1 = cx * CELL;
-        const x2 = x1 + CELL;
-        if (inArena((x1 + x2) / 2, y)) continue;
-        walls.push([x1, y, x2, y]);
-      }
-    }
-  }
-  return walls;
+  // Keep a generous central combat zone clear (spawns + room to maneuver).
+  return walls.filter(w => !segHitsRect(w, 220, 150, 580, 450));
+}
+
+// Exactly three rotating maps: three fixed seeds → three distinct mazes.
+const MAZE_SEEDS = [7, 23, 91];
+function pickMaze(ctx: Ctx): Wall[] {
+  const i = ctx.random.integerInRange(0, MAZE_SEEDS.length - 1);
+  return generateMaze(MAZE_SEEDS[i]);
 }
 
 /** Distance from a point to an axis-aligned segment. */
@@ -249,6 +307,40 @@ function randomSpawn(ctx: Ctx): { x: number; y: number } {
     x: ctx.random.integerInRange(ARENA.x0 + 40, ARENA.x1 - 80),
     y: ctx.random.integerInRange(ARENA.y0 + 30, ARENA.y1 - 30),
   };
+}
+
+/** A spawn point clear of the given walls (the central zone is always clear). */
+function clearSpawn(ctx: Ctx, walls: Wall[]): { x: number; y: number } {
+  for (let i = 0; i < 12; i++) {
+    const sp = randomSpawn(ctx);
+    if (!hitsAnyWall(sp.x, sp.y, TANK_R, walls)) return sp;
+  }
+  return randomSpawn(ctx);
+}
+
+/** Load a fresh random map for a tank game + respawn every tank into it. */
+function rotateMap(ctx: Ctx, gameId: bigint): void {
+  const mf = ctx.db.map_features.game_id.find(gameId);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let features: Record<string, any> = {};
+  try {
+    features = mf ? JSON.parse(mf.features) : {};
+  } catch {
+    features = {};
+  }
+  const walls = pickMaze(ctx);
+  features.walls = walls;
+  if (mf) {
+    ctx.db.map_features.game_id.update({
+      ...mf,
+      features: JSON.stringify(features),
+    });
+  }
+  for (const tnk of ctx.db.entity.game_id.filter(gameId)) {
+    if (tnk.kind !== 'tank') continue;
+    const sp = clearSpawn(ctx, walls);
+    ctx.db.entity.entity_id.update({ ...tnk, x: sp.x, y: sp.y, vx: 0, vy: 0 });
+  }
 }
 
 /** `count` random safe-gap centers spread over a flappy world of height H. */
@@ -341,7 +433,7 @@ function createGameInternal(ctx: Ctx, game_type: string, name: string): bigint {
     updated_by: owner,
     updated_at: ctx.timestamp,
   });
-  const walls = game_type === 'flappy' ? [] : generateMaze(seed);
+  const walls = game_type === 'flappy' ? [] : pickMaze(ctx);
   ctx.db.map_features.insert({
     game_id: g.game_id,
     features: JSON.stringify({ walls, boost_zones: [] }),
@@ -471,7 +563,8 @@ export const debug_place = spacetimedb.reducer(
 // field server-side (defense in depth), then write game_rules / player /
 // map_features. Subscribers receive the change instantly (the live hot-reload).
 // ---------------------------------------------------------------------------
-const BOOST_ACCEL = 240; // px/s per strength unit inside a boost strip
+const BOOST_MULT = 2; // speed multiplier while a speed-pad buff is active
+const BOOST_MS = 5000; // pad buff lasts this long after you drive over it
 type BoostZone = {
   x: number;
   y: number;
@@ -643,7 +736,24 @@ export const reset_game = spacetimedb.reducer(
         speed_override: 0,
         weapon: 'normal',
         vision_radius: 0,
+        alive: true,
+        score: 0,
       });
+    }
+    // Flappy: revive + recenter every bird so Reset gives a clean run.
+    if (g.game_type === 'flappy') {
+      const midY = (FLAPPY_BASE_H * FLAPPY_DEFAULTS.field_height) / 2;
+      for (const e of ctx.db.entity.game_id.filter(game_id)) {
+        if (e.kind === 'bird') {
+          ctx.db.entity.entity_id.update({
+            ...e,
+            y: midY,
+            vy: 0,
+            vx: 0,
+            data: JSON.stringify({ input: NO_INPUT, wasFlap: false }),
+          });
+        }
+      }
     }
     const mf = ctx.db.map_features.game_id.find(game_id);
     if (mf) {
@@ -656,10 +766,47 @@ export const reset_game = spacetimedb.reducer(
       }
       f.boost_zones = [];
       f.wall_graze_sparks = false;
+      // Tank games get a fresh random maze on Reset.
+      if (g.game_type !== 'flappy') f.walls = pickMaze(ctx);
       ctx.db.map_features.game_id.update({
         ...mf,
         features: JSON.stringify(f),
       });
+      if (g.game_type !== 'flappy') {
+        const walls = f.walls as Wall[];
+        for (const tnk of ctx.db.entity.game_id.filter(game_id)) {
+          if (tnk.kind !== 'tank') continue;
+          const sp = clearSpawn(ctx, walls);
+          ctx.db.entity.entity_id.update({ ...tnk, x: sp.x, y: sp.y, vx: 0, vy: 0 });
+        }
+      }
+    }
+  }
+);
+
+// Flappy: revive the caller's bird after a game-over and start a fresh run
+// (score back to 0). Centered, alive, ready to flap.
+export const respawn = spacetimedb.reducer(
+  { game_id: t.u64() },
+  (ctx, { game_id }) => {
+    const me = ctx.sender;
+    const rules = ctx.db.game_rules.game_id.find(game_id);
+    const midY = (FLAPPY_BASE_H * (rules ? rules.field_height : 1)) / 2;
+    for (const e of ctx.db.entity.game_id.filter(game_id)) {
+      if (e.owner != null && e.owner.equals(me) && e.kind === 'bird') {
+        ctx.db.entity.entity_id.update({
+          ...e,
+          y: midY,
+          vy: 0,
+          vx: 0,
+          data: JSON.stringify({ input: NO_INPUT, wasFlap: false }),
+        });
+        break;
+      }
+    }
+    const pl = ctx.db.player.identity.find(me);
+    if (pl && pl.game_id === game_id) {
+      ctx.db.player.identity.update({ ...pl, score: 0, alive: true });
     }
   }
 );
@@ -810,7 +957,8 @@ export const tick = spacetimedb.reducer(
     // ---- tanks: drive (axis-separated wall collision) + fire ----
     for (const e of ents) {
       if (e.kind !== 'tank') continue;
-      let data: { input?: Input; lastFireMicros?: number } = {};
+      let data: { input?: Input; lastFireMicros?: number; boostUntil?: number } =
+        {};
       try {
         data = JSON.parse(e.data);
       } catch {
@@ -822,7 +970,10 @@ export const tick = spacetimedb.reducer(
       const ohex = e.owner != null ? e.owner.toHexString() : null;
       const pl = ohex ? playerByOwner.get(ohex) : null;
       const sover = pl && pl.speed_override > 0 ? pl.speed_override : 1;
-      const speedMult = (rules ? rules.player_speed : 1) * sover;
+      let boostUntil = data.boostUntil ?? 0;
+      const boosted = nowMicros < boostUntil;
+      const speedMult =
+        (rules ? rules.player_speed : 1) * sover * (boosted ? BOOST_MULT : 1);
 
       const dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
       const dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
@@ -842,19 +993,14 @@ export const tick = spacetimedb.reducer(
         const ty = Math.max(TANK_R, Math.min(FIELD_H - TANK_R, y + stepY));
         if (!hitsAnyWall(x, ty, TANK_R, walls)) y = ty;
       }
-      // Directional boost strips (AI-placed; normalized 0..1 coords).
+      // Speed pads: driving onto one grants a timed buff that carries off it.
       for (const z of boostByGame.get(e.game_id.toString()) ?? []) {
         const zx = z.x * FIELD_W;
         const zy = z.y * FIELD_H;
         const zw = z.w * FIELD_W;
         const zh = z.h * FIELD_H;
         if (x >= zx && x <= zx + zw && y >= zy && y <= zy + zh) {
-          const bx = z.dir[0] * z.strength * BOOST_ACCEL * TICK_DT;
-          const by = z.dir[1] * z.strength * BOOST_ACCEL * TICK_DT;
-          const tx = Math.max(TANK_R, Math.min(FIELD_W - TANK_R, x + bx));
-          if (!hitsAnyWall(tx, y, TANK_R, walls)) x = tx;
-          const ty = Math.max(TANK_R, Math.min(FIELD_H - TANK_R, y + by));
-          if (!hitsAnyWall(x, ty, TANK_R, walls)) y = ty;
+          boostUntil = nowMicros + BOOST_MS * 1000;
         }
       }
       const angle = mag > 0 ? Math.atan2(ny, nx) : e.angle;
@@ -863,13 +1009,12 @@ export const tick = spacetimedb.reducer(
       const vy = moved ? (y - e.y) / TICK_DT : 0;
 
       let fired = false;
-      let newData = data;
-      if (e.kind === 'tank' && input.fire) {
-        const last = data.lastFireMicros ?? 0;
+      let lastFire = data.lastFireMicros ?? 0;
+      if (input.fire) {
         const cooldown = rules ? rules.fire_cooldown_ms : FIRE_COOLDOWN_MS;
         const shellSpeed = SHELL_SPEED * (rules ? rules.projectile_speed : 1);
         const bouncesInit = rules ? rules.projectile_bounces : MAX_BOUNCES;
-        if (nowMicros - last >= cooldown * 1000) {
+        if (nowMicros - lastFire >= cooldown * 1000) {
           ctx.db.entity.insert({
             entity_id: 0n,
             game_id: e.game_id,
@@ -882,12 +1027,13 @@ export const tick = spacetimedb.reducer(
             angle,
             data: JSON.stringify({ bouncesLeft: bouncesInit, age: 0 }),
           });
-          newData = { ...data, lastFireMicros: nowMicros };
+          lastFire = nowMicros;
           fired = true;
         }
       }
 
-      if (moved || fired || angle !== e.angle) {
+      const boostChanged = boostUntil !== (data.boostUntil ?? 0);
+      if (moved || fired || boostChanged || angle !== e.angle) {
         ctx.db.entity.entity_id.update({
           ...e,
           x,
@@ -895,7 +1041,7 @@ export const tick = spacetimedb.reducer(
           vx,
           vy,
           angle,
-          data: fired ? JSON.stringify(newData) : e.data,
+          data: JSON.stringify({ input, lastFireMicros: lastFire, boostUntil }),
         });
       }
     }
@@ -973,6 +1119,15 @@ export const tick = spacetimedb.reducer(
           });
           ctx.db.entity.entity_id.delete(e.entity_id);
           hit = true;
+          // Every 5 total points in this game: rotate to a new random map
+          // (Tank-Trouble-style round change) and respawn all tanks into it.
+          if (!sameOwner && e.owner != null) {
+            let total = 0;
+            for (const p of ctx.db.player.game_id.filter(e.game_id)) {
+              total += p.score;
+            }
+            if (total > 0 && total % 5 === 0) rotateMap(ctx, e.game_id);
+          }
           break;
         }
       }
@@ -1007,6 +1162,16 @@ export const tick = spacetimedb.reducer(
           if (p.kind === 'pipe') ctx.db.entity.entity_id.delete(p.entity_id);
         }
         continue;
+      }
+
+      // Birds whose player is in the game-over state: they freeze and don't score.
+      const deadSet = new Set<string>();
+      for (const b of birds) {
+        const oh = b.owner ? b.owner.toHexString() : null;
+        if (oh) {
+          const pl = playerByOwner.get(oh);
+          if (pl && !pl.alive) deadSet.add(oh);
+        }
       }
 
       // Ensure NUM_PIPES exist, spaced to the right.
@@ -1064,6 +1229,7 @@ export const tick = spacetimedb.reducer(
         for (const bird of birds) {
           if (bird.owner == null) continue;
           const bhex = bird.owner.toHexString();
+          if (deadSet.has(bhex)) continue;
           if (x + PIPE_W < bird.x && !scoredBy.includes(bhex)) {
             scoredBy.push(bhex);
             const pl = playerByOwner.get(bhex);
@@ -1080,7 +1246,7 @@ export const tick = spacetimedb.reducer(
         });
       }
 
-      // Birds: gravity + flap + bounds + pipe collision.
+      // Birds: gravity + flap; glide along surfaces; a head-on pipe wall kills.
       for (const e of birds) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let d: any = {};
@@ -1090,14 +1256,35 @@ export const tick = spacetimedb.reducer(
           d = {};
         }
         const input: Input = d.input ?? NO_INPUT;
+        const oh = e.owner ? e.owner.toHexString() : null;
+
+        // Dead birds freeze where they fell (the client shows a game-over card;
+        // the respawn reducer revives them). They never teleport.
+        if (oh && deadSet.has(oh)) {
+          if (e.vy !== 0 || e.vx !== 0) {
+            ctx.db.entity.entity_id.update({ ...e, vx: 0, vy: 0 });
+          }
+          continue;
+        }
+
         const flap = !!(input.up || input.fire);
         let vy = e.vy + GRAVITY_BASE * gravity * TICK_DT;
         if (flap && !d.wasFlap) vy = -FLAP_IMPULSE;
         let y = e.y + vy * TICK_DT;
-        if (y < BIRD_R || y > H - BIRD_R) {
-          y = H / 2;
-          vy = 0;
+
+        // Ground / ceiling: clamp + glide. Never teleport, never die here.
+        if (y < BIRD_R) {
+          y = BIRD_R;
+          if (vy < 0) vy = 0;
         }
+        if (y > H - BIRD_R) {
+          y = H - BIRD_R;
+          if (vy > 0) vy = 0;
+        }
+
+        // Pipes: aligned with a gap → glide along its lip; otherwise the bird
+        // smacked the solid face head-on → game over.
+        let died = false;
         for (const p of pipesNow) {
           const px = p.x - pipeSpeed * TICK_DT;
           if (e.x + BIRD_R > px && e.x - BIRD_R < px + PIPE_W) {
@@ -1107,21 +1294,50 @@ export const tick = spacetimedb.reducer(
             } catch {
               gaps = [];
             }
-            const inGap = gaps.some(c => Math.abs(y - c) < gapH / 2 - BIRD_R);
-            if (!inGap) {
-              y = H / 2;
-              vy = 0;
+            const center = gaps.find(c => Math.abs(y - c) <= gapH / 2);
+            if (center === undefined) {
+              died = true;
               break;
+            }
+            const top = center - gapH / 2 + BIRD_R;
+            const bot = center + gapH / 2 - BIRD_R;
+            if (top > bot) {
+              died = true; // gap too small to fit through
+              break;
+            }
+            if (y < top) {
+              y = top;
+              if (vy < 0) vy = 0;
+            }
+            if (y > bot) {
+              y = bot;
+              if (vy > 0) vy = 0;
             }
           }
         }
-        ctx.db.entity.entity_id.update({
-          ...e,
-          vx: 0,
-          vy,
-          y,
-          data: JSON.stringify({ input, wasFlap: flap }),
-        });
+
+        if (died) {
+          if (oh) {
+            const pl = playerByOwner.get(oh);
+            if (pl && pl.alive) {
+              ctx.db.player.identity.update({ ...pl, alive: false });
+            }
+          }
+          ctx.db.entity.entity_id.update({
+            ...e,
+            vx: 0,
+            vy: 0,
+            data: JSON.stringify({ input, wasFlap: flap }),
+          });
+        } else {
+          ctx.db.entity.entity_id.update({
+            ...e,
+            vx: 0,
+            vy,
+            y,
+            data: JSON.stringify({ input, wasFlap: flap }),
+          });
+        }
       }
 
       // Bird-bird collision (push apart) when enabled.
@@ -1133,6 +1349,9 @@ export const tick = spacetimedb.reducer(
           for (let j = i + 1; j < bnow.length; j++) {
             const a = bnow[i];
             const b = bnow[j];
+            const ah = a.owner ? a.owner.toHexString() : null;
+            const bh = b.owner ? b.owner.toHexString() : null;
+            if ((ah && deadSet.has(ah)) || (bh && deadSet.has(bh))) continue;
             let ddx = b.x - a.x;
             let ddy = b.y - a.y;
             let dist = Math.hypot(ddx, ddy);

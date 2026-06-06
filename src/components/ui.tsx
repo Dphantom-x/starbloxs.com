@@ -6,7 +6,7 @@ import type { CSSProperties, ReactNode } from "react";
 type IconName =
   | "back" | "plus" | "x" | "check" | "copy" | "qr" | "share" | "play"
   | "remix" | "trash" | "dots" | "bolt" | "send" | "users" | "search"
-  | "arrow" | "trophy";
+  | "arrow" | "trophy" | "expand" | "shrink";
 
 export function Icon({
   name,
@@ -48,6 +48,8 @@ export function Icon({
     case "search": return <svg {...p}><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4-4" /></svg>;
     case "arrow": return <svg {...p}><path d="M5 12h14M13 6l6 6-6 6" /></svg>;
     case "trophy": return <svg {...p}><path d="M7 4h10v4a5 5 0 01-10 0zM7 6H4v1a3 3 0 003 3M17 6h3v1a3 3 0 01-3 3M9 19h6M10 15.5V19M14 15.5V19" /></svg>;
+    case "expand": return <svg {...p}><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" /></svg>;
+    case "shrink": return <svg {...p}><path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5" /></svg>;
     default: return null;
   }
 }

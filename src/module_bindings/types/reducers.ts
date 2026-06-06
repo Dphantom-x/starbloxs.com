@@ -13,6 +13,7 @@ import DeleteGameReducer from "../delete_game_reducer";
 import JoinGameReducer from "../join_game_reducer";
 import RemixGameReducer from "../remix_game_reducer";
 import ResetGameReducer from "../reset_game_reducer";
+import RespawnReducer from "../respawn_reducer";
 import SetInputReducer from "../set_input_reducer";
 
 export type ApplyRulesPatchParams = __Infer<typeof ApplyRulesPatchReducer>;
@@ -22,5 +23,6 @@ export type DeleteGameParams = __Infer<typeof DeleteGameReducer>;
 export type JoinGameParams = __Infer<typeof JoinGameReducer>;
 export type RemixGameParams = __Infer<typeof RemixGameReducer>;
 export type ResetGameParams = __Infer<typeof ResetGameReducer>;
+export type RespawnParams = __Infer<typeof RespawnReducer>;
 export type SetInputParams = __Infer<typeof SetInputReducer>;
 

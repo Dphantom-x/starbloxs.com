@@ -38,10 +38,17 @@ export default function GameCanvas({ gameId }: { gameId: string }) {
 
       game = new Phaser.Game({
         type: Phaser.AUTO,
-        width: 800,
-        height: 600,
         parent: containerRef.current,
         backgroundColor: "#e9eef2",
+        // Logical resolution stays 800x600 (all scenes assume it); Phaser's
+        // scale manager fits + centers the canvas into the parent and remaps
+        // input internally, so the game stays crisp at any display size.
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+          width: 800,
+          height: 600,
+        },
         scene,
       });
     })();
@@ -53,11 +60,6 @@ export default function GameCanvas({ gameId }: { gameId: string }) {
   }, [mod, gameId]);
 
   return (
-    <div
-      ref={containerRef}
-      data-testid="game-canvas"
-      className="overflow-hidden"
-      style={{ width: 800, height: 600, borderRadius: 12, display: "block" }}
-    />
+    <div ref={containerRef} data-testid="game-canvas" className="game-canvas-host" />
   );
 }

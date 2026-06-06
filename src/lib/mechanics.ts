@@ -78,6 +78,28 @@ export const RulesPatchSchema = z
 
 export type RulesPatch = z.infer<typeof RulesPatchSchema>;
 
+/** `n` speed pads at random spots (normalized 0..1), each pointing a random way. */
+function randomBoostZones(n: number): NonNullable<RulesPatch["boost_zones"]> {
+  const dirs: [number, number][] = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ];
+  const zones: NonNullable<RulesPatch["boost_zones"]> = [];
+  for (let i = 0; i < n; i++) {
+    zones.push({
+      x: +(0.1 + Math.random() * 0.68).toFixed(2),
+      y: +(0.12 + Math.random() * 0.6).toFixed(2),
+      w: 0.13,
+      h: 0.13,
+      dir: dirs[Math.floor(Math.random() * dirs.length)],
+      strength: 2,
+    });
+  }
+  return zones;
+}
+
 /**
  * Deterministic prompt -> patch mapping used when there's no ANTHROPIC_API_KEY
  * or in test mode. Also the network-independent demo-day fallback. Patches are
@@ -141,19 +163,26 @@ export function cannedPatch(
   }
 
   // Boost strips + laser backup prompt
-  if (p.includes("boost") && (p.includes("laser") || p.includes("strip"))) {
+  if (p.includes("boost") && p.includes("laser")) {
     return {
       projectile_bounces: 4,
-      boost_zones: [
-        { x: 0.15, y: 0.3, w: 0.2, h: 0.12, dir: [1, 0], strength: 2 },
-        { x: 0.45, y: 0.55, w: 0.2, h: 0.12, dir: [1, 0], strength: 2 },
-        { x: 0.7, y: 0.2, w: 0.2, h: 0.12, dir: [1, 0], strength: 2 },
-      ],
+      boost_zones: randomBoostZones(3),
       per_player: [
         { target: "loser", speed_override: 0.6, weapon: "laser" },
         { target: "all_others", speed_override: 1.25 },
       ],
     };
+  }
+
+  // Speed pads ("speed blitz" / boost pads / strips) at random spots.
+  if (
+    p.includes("speed blitz") ||
+    p.includes("blitz") ||
+    p.includes("boost") ||
+    p.includes("speed pad") ||
+    p.includes("strip")
+  ) {
+    return { boost_zones: randomBoostZones(3) };
   }
 
   // Flappy combined prompts (from SMOKE_TESTS.md)

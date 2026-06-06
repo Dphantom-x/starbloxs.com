@@ -205,3 +205,65 @@ Run this on the **live Vercel URL** after the redeploy. Backend is published to 
 1. In any room the **demo** preset chips apply cached rule changes instantly (network-independent), and **Reset** restores defaults.
 
 **DONE WHEN:** the live URL connects to Maincloud (seeded games visible, no red banner), two devices on different networks share one match, AI/demo edits hot-reload to everyone, and create/remix work. _If anything fails to connect, the red banner now names the exact URL/db it tried — match it against the env above._
+
+---
+
+## Immersive room + mobile controls ✅ (round 2 upgrades)
+The room is now game-first: the canvas scales to fill the stage, the AI chat is hidden until you ask for it, edits flash through a little terminal, there's a fullscreen mode, and phones get on-screen controls. (Game-art polish is intentionally separate — that's the hands-on pass we'll do together.)
+
+**Desktop**
+1. Open any game → the canvas is **large and centered** in a dark stage (it scales to your window), with a **slim scoreboard** overlaid top-right and a `800 × 600 · live` badge bottom-left.
+2. Bottom-right of the stage: a **⤢ fullscreen** button and an **Edit with AI** button. The big chat rail is **gone by default** — the game is the focus.
+3. Click **Edit with AI** → a chat panel **slides in from the right**. Type a change (e.g. *"everyone moves 2× faster and shells bounce 5 times"*) and send.
+4. A **terminal** above the input flashes the real change as code — `$ starblox apply → game_rules`, `~ player_speed: 2`, `~ projectile_bounces: 5`, `✓ hot-reloaded · live for N · 9ms`. The change is live for everyone instantly. Close the panel with the **✕**.
+5. Click **⤢ fullscreen** → the game goes **edge-to-edge** (top bar hidden). Click again (or press **Esc**) to exit.
+
+**Mobile / touch** (open the deployed URL on a phone, or DevTools device mode)
+1. Tank games show a **d-pad (▲◀▶▼) bottom-left + a red FIRE button bottom-right**; hold them to drive and shoot — no keyboard needed.
+2. Flappy games show a **TAP TO FLAP** button; tap it to flap.
+3. The canvas scales to fit the phone; the scoreboard sits as a slim overlay up top.
+
+**DONE WHEN:** the game fills the stage and scales with the window, the chat only appears when you click **Edit with AI**, edits flash through the terminal and go live, fullscreen is truly edge-to-edge, and a phone can drive the tank / flap with on-screen controls. _Automated: `e2e/phase8_immersive.spec.ts` covers mobile-drive, fullscreen, open-chat, type+apply, and the terminal; all 12 e2e specs + `npm run build` are green._
+
+---
+
+## Flappy overhaul ✅ (classic look + forgiving collision + game-over)
+Open **http://localhost:3001/game/2** (Flappy Arena). _Note: local DB is now `bloxdev` (see STATE.md); prod is unaffected._
+
+**Look**
+1. Sky gradient with clouds, a ground strip, **green capped (Mario-style) pipes**, and a classic **yellow bird** that **tilts** (nose-up when you flap, nose-down as it falls) and flaps its wing.
+
+**Forgiving collision (no more teleport)**
+2. Let the bird fall to the **ground** — it **glides** along the floor, it does **not** teleport to the middle anymore.
+3. Flap up so you're lined up with a gap and skim the **top/bottom lip** of the gap — you **slide through** (survive).
+4. Fly straight into the **solid face of a pipe** (not aligned with the gap) → **Game Over**.
+
+**Game-over card + restart**
+5. On death a card appears — **SCORE** + **BEST** (best persists locally) + **Play again**. In multiplayer, only the bird that died sees its card; everyone else keeps flying.
+6. Click **Play again** → you respawn centered, score resets to 0, and you're flying again.
+
+**Multiplayer + still-live edits**
+7. Two windows both at `/game/2`: both birds fly in sync; one dying doesn't affect the other. The **Edit with AI** box still changes gravity/gaps/etc. live for everyone, and the on-screen **TAP TO FLAP** works on mobile.
+
+**DONE WHEN:** the bird/pipes look classic, the bird glides on surfaces instead of teleporting, a head-on pipe wall ends the run with a score card + Play again, and restart revives you. _Automated: `phase6.spec.ts` covers the gravity/gaps/collision rules AND the death→card→restart flow; all 13 e2e specs green._
+
+---
+
+## Tank overhaul ✅ (maze maps + speed pads + smaller tanks)
+Open **http://localhost:3001/game/1** (Tank Trouble).
+
+**Maze maps**
+1. The arena is now a proper **corridor maze** (not scattered walls), on a faint grid floor, with a clear central area where tanks spawn.
+2. There are **3 distinct maps**; a new one loads at random **every 5 total points** (and on **Reset**). Hit **Reset** a few times — the maze changes.
+
+**Smaller / slower tanks**
+3. Tanks are noticeably **smaller** and a touch **slower** by default — easier to thread the corridors.
+
+**Speed pads ("speed blitz")**
+4. In **Edit with AI** type **"add a speed blitz"** (or use the **Speed blitz** demo button). A few **gold-chevron metallic pads** appear at random spots, arrows pointing their boost direction (matching the reference).
+5. Drive a tank **over a pad** → it's **sped up (~2×) for 5 seconds** (the boost follows you off the pad; the tank gets a gold outline while buffed), then returns to normal.
+
+**Multiplayer + edits still live**
+6. Two windows at `/game/1`: maze + pads are identical for both; rotation + edits apply to everyone at once.
+
+**DONE WHEN:** the map is a maze that rotates between 3 layouts every 5 points, tanks are smaller/slower, and a speed-blitz edit drops chevron pads that give a 5-second speed buff on contact. _Automated: `phase9_tank.spec.ts` verifies the timed buff; all 14 e2e specs green._

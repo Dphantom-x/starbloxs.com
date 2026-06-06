@@ -244,6 +244,12 @@ export function resetGame(gameId: string): void {
   conn.reducers.resetGame({ gameId: BigInt(gameId) });
 }
 
+/** Flappy: revive the caller's bird after a game-over and start a fresh run. */
+export function respawn(gameId: string): void {
+  if (!conn) return;
+  conn.reducers.respawn({ gameId: BigInt(gameId) });
+}
+
 // ---- create / remix (Phase 7) ----
 // Reducers can't return values, so resolve the new game's id by watching the
 // cache for a new game owned by me appearing after the call.

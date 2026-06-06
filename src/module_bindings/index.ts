@@ -41,6 +41,7 @@ import DeleteGameReducer from "./delete_game_reducer";
 import JoinGameReducer from "./join_game_reducer";
 import RemixGameReducer from "./remix_game_reducer";
 import ResetGameReducer from "./reset_game_reducer";
+import RespawnReducer from "./respawn_reducer";
 import SetInputReducer from "./set_input_reducer";
 
 // Import all procedure arg schemas
@@ -128,6 +129,7 @@ const reducersSchema = __reducers(
   __reducerSchema("join_game", JoinGameReducer),
   __reducerSchema("remix_game", RemixGameReducer),
   __reducerSchema("reset_game", ResetGameReducer),
+  __reducerSchema("respawn", RespawnReducer),
   __reducerSchema("set_input", SetInputReducer),
 );
 

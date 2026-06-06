@@ -6,23 +6,37 @@
 import { useState } from "react";
 import { useStdb } from "./StdbProvider";
 
-const TANK_PRESETS: { label: string; patch: object }[] = [
+// Speed pads at random spots (matches the "speed blitz" AI edit).
+function randomPads() {
+  const dirs = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ];
+  return {
+    boost_zones: Array.from({ length: 3 }, () => ({
+      x: +(0.1 + Math.random() * 0.68).toFixed(2),
+      y: +(0.12 + Math.random() * 0.6).toFixed(2),
+      w: 0.13,
+      h: 0.13,
+      dir: dirs[Math.floor(Math.random() * dirs.length)],
+      strength: 2,
+    })),
+  };
+}
+
+type Preset = { label: string; patch: object | (() => object) };
+
+const TANK_PRESETS: Preset[] = [
   { label: "Speed ×2", patch: { player_speed: 2 } },
   { label: "Bouncy shells", patch: { projectile_bounces: 6 } },
   { label: "Fast shells", patch: { projectile_speed: 2.5 } },
   { label: "Rapid fire", patch: { fire_cooldown_ms: 150 } },
-  {
-    label: "Boost strips",
-    patch: {
-      boost_zones: [
-        { x: 0.15, y: 0.45, w: 0.18, h: 0.12, dir: [1, 0], strength: 3 },
-        { x: 0.62, y: 0.3, w: 0.18, h: 0.12, dir: [-1, 0], strength: 3 },
-      ],
-    },
-  },
+  { label: "Speed blitz", patch: randomPads },
 ];
 
-const FLAPPY_PRESETS: { label: string; patch: object }[] = [
+const FLAPPY_PRESETS: Preset[] = [
   { label: "Low gravity", patch: { gravity: 0.45 } },
   { label: "Heavy gravity", patch: { gravity: 2.2 } },
   { label: "Wide gaps", patch: { pipe_gap: 1.8 } },
@@ -43,9 +57,10 @@ export default function DemoControls({
   if (!mod || process.env.NEXT_PUBLIC_TEST_MODE !== "1") return null;
 
   const presets = gameType === "flappy" ? FLAPPY_PRESETS : TANK_PRESETS;
-  const apply = (label: string, patch: object) => {
+  const apply = (label: string, patch: object | (() => object)) => {
     setActive(label);
-    mod.applyRulesPatch(gameId, JSON.stringify(patch));
+    const resolved = typeof patch === "function" ? patch() : patch;
+    mod.applyRulesPatch(gameId, JSON.stringify(resolved));
   };
 
   return (

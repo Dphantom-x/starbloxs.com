@@ -1,68 +1,85 @@
-# Blox — Demo runbook & deployed smoke test
+# Starblox — Demo runbook (click-by-click)
 
-## Before you go on stage
-- **Two views** of the deployed site: a laptop window **+ a phone** (scan the room
-  QR), or two laptop windows (normal + Incognito = two distinct players).
-- **Pre-warm Maincloud:** open the site once (free tier sleeps when idle).
-- On Vercel set **`NEXT_PUBLIC_TEST_MODE=1`** so the on-screen demo buttons (the
-  network-independent fallback) are available.
-- Have the **cached prompts ready** to paste (below) — the canned patches map them
-  even with no API key.
-
-## The flow (~3 min) — mapped to the app
-1. **Hook (talk).** Open the home menu → two games (Tank Trouble, Flappy Arena) +
-   "Create with AI".
-2. **DEMO 1 — make a game by talking.** Click **Create with AI**, type:
-   > *Make a multiplayer Flappy Bird — make it tall, give each pipe a few different gaps to aim for, and let the birds knock into each other.*
-   You're dropped into a NEW Flappy game (tall, multi-gap pipes, birds collide).
-   Have the second view **join** (scan QR / open the same `/game/{id}`). Both flap.
-   ✅ **Fully lands today.**
-3. **Pivot (talk).** "Rules live as data in SpacetimeDB — the AI can change a
-   *running* game for everyone at once." Open **Tank Trouble**.
-4. **DEMO 2 — remix live (climax).** In the room's AI box, type a transformation.
-   - ⚠️ The scripted **manhunt** prompt (hunter + black-out/fog + sparks) currently
-     **applies the rules but does NOT visually render** (no fog/sparks/hunter art yet
-     — see To-do #2). On stage it would *look like nothing changed*.
-   - ✅ **What visibly transforms live on tanks TODAY:** speed, bounce count, shell
-     speed, rapid fire, per-player speed. A climax that lands today:
-     > *Make everyone twice as fast, make shells bounce five times, and make it rapid-fire.*
-     → both screens turn to chaos at the same instant.
-5. **Close (talk).**
-
-## Cached prompts (canned-mode safe)
-- Flappy create: *"a multiplayer flappy bird, tall, 3 gaps, birds collide"*
-- Tank chaos (lands today): *"make everyone twice as fast and shells bounce 5 times"* · *"rapid fire"*
-- Flappy edits: *"lower gravity and widen the gaps"* · *"let the birds knock into each other"*
-- Manhunt (needs To-do #2 to render): *"turn it into a manhunt — one hunter, black out the map, others throw sparks"*
+What to **click**, what to **say**, and what to **expect** — to record the demo video.
 
 ---
 
-## Smoke test — the DEPLOYED Vercel link
+## Pre-flight (5 min before recording)
+1. **Deploy must be current.** The live Vercel site must have the latest build
+   (immersive room, mobile controls, Flappy game-over, Tank maze + speed pads).
+   If you only `git push` the frontend, you ALSO need the module republished to
+   Maincloud (`spacetime publish starblox-prod --server maincloud -y`) — otherwise
+   new client + old server = broken. Do both, then verify the site connects.
+2. **Pre-warm Maincloud:** open the live URL ~30s before recording (free tier sleeps
+   when idle, so the *first* connect can take a couple seconds; after that it's instant).
+3. **Two side-by-side windows** on the same game URL = your reliable "live for everyone"
+   shot (Window A = you, Window B = a friend). Optional wow: a **phone** to scan the QR.
+4. Confirm both windows show the green **Connected** dot (no red banner).
+5. Keep the **Safe commands** list (bottom) handy. Canned-AI mode = deterministic, so
+   stick to those phrases.
 
-### Prerequisite: the deploy must be fully wired (not just `git push`)
-For the deployed site to work you need BOTH:
-1. The SpacetimeDB module published to **Maincloud**:
-   `spacetime login` then `spacetime publish <unique-name> --server maincloud`.
-2. Vercel **env vars**:
-   - `NEXT_PUBLIC_STDB_URI = wss://maincloud.spacetimedb.com`
-   - `NEXT_PUBLIC_STDB_DB = <unique-name>`
-   - `NEXT_PUBLIC_TEST_MODE = 1`
-   - (optional) `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`
-If these aren't set, the site loads but stays **"Connecting…"**. (See `DEPLOY.md`.)
+---
 
-### Steps
-0. **Connects.** Open the Vercel URL → home shows **"Connected"** + Tank Trouble +
-   Flappy Arena. _Stuck on "Connecting…" → backend/env not wired (prereq above)._
-1. **Single play.** Open Tank Trouble → drive (arrows), fire (space), shells bounce.
-2. **AI edit.** Type *"make everyone twice as fast and shells bounce 5 times"* →
-   status "done ✓", tanks speed up + shells bounce more. Try the **demo buttons**.
-3. **Create.** Home → Create with AI → *"a multiplayer flappy bird, tall, 3 gaps, birds collide"* → dropped into a matching new Flappy game.
-4. **Cross-device (the payoff).** In a tank room click **📱 Scan to join**, scan with
-   your phone on cellular → it joins the **same match**. Move on the phone → see it
-   on the laptop. Edit on the laptop → the phone changes too.
-   _(Known issue: the 800×600 canvas overflows a phone screen — To-do #3.)_
-5. **Graceful refusal.** Type *"order me a pizza"* → friendly "I can't do that one yet".
-6. Open DevTools console → no red errors; confirm the QR encodes the **Vercel** URL.
+## The script — Act by act
 
-**DONE WHEN:** the deployed site connects, both games play, AI/demo edits change the
-game live, Create works, and a phone joins the same match over the internet.
+### Act 1 — Hook (~15s) · Home (`/`)
+- **Click:** nothing — you're on the home page.
+- **Say:** *"This is Starblox. Every game here was made — and is changed — just by talking to an AI, and it's all live multiplayer. Let me make one from scratch."*
+- **Expect:** hero "Games, made and remade by talking," green **Connected**, cards for Tank Trouble + Flappy Arena.
+
+### Act 2 — Make a game by describing it (~40s) · `/create`
+- **Click:** the **"Create with AI"** tile (hero, right).
+- **Type** in the box: `a multiplayer flappy bird, tall, with a few gaps, and birds that collide` → **Enter**.
+- **Expect:** marble spins ("designing…"), then a **preview card** — *"Looks like… {name}"*, FLAPPY tag, rule chips (Tall field · gaps · Birds collide).
+- **Say:** *"It understood it — tall field, multiple gaps, birds that knock each other. Looks right."*
+- **Click:** **"Looks good — create."**
+- **Expect:** dropped into the live room; yellow bird + green capped pipes flying.
+
+### Act 3 — Instantly live & multiplayer (~30s) · Room
+- **Say:** *"It's already a real multiplayer game — no build step."*
+- **Reliable:** bring up **Window B** (same URL) side-by-side → **Expect** a 2nd bird in **both** windows, in sync.
+- **Wow (optional):** **Click "Scan to join"** → QR + link → scan with phone → **Expect** the phone joins the same match, showing a **TAP TO FLAP** button.
+
+### Act 4 — Develop it live, by talking (~45s) · Edit with AI
+- **Click:** the **"Edit with AI"** button (bottom-right of the game). A chat panel slides in.
+- **Type (one at a time, pause ~1s each):**
+  - `make the gaps wider`
+  - `lower the gravity`
+- **Say:** *"I'm changing the rules in plain English — watch the other screen."*
+- **Expect:** the little **terminal** flashes the real change (`~ pipe_gap: 1.8 … ✓ hot-reloaded · live`), and gameplay changes in **both** windows at once.
+- **Beat:** fly into a pipe wall → **Expect** the **Game Over card** (SCORE / BEST / **Play again**). **Say:** *"Score, restart — and only the player who died sees it."* Click **Play again**.
+
+### Act 5 — Showpiece: Tank maze + speed pads (~45s)
+- **Click:** **"back to games"** → **Tank Trouble** card → lobby → **Play** (or **Create with AI** → `a tank game with bouncy shells`).
+- **Say:** *"Same engine, a maze game — there are three mazes that rotate as you play."*
+- **Expect:** a corridor maze + small tanks. Drive (arrows), fire (space).
+- **Click "Edit with AI"** → type `add a speed blitz` (or click the **"add boost strips"** chip).
+- **Expect:** **gold-chevron speed pads** appear at random spots.
+- **Drive a tank over a pad.**
+- **Say:** *"Drive over one → a speed boost for five seconds."*
+- **Expect:** the tank gets a gold outline + visibly speeds up ~5s.
+- **Optional:** click **⤢ fullscreen** → game goes edge-to-edge.
+
+### Act 6 — Remix + close (~20s)
+- **Click:** **"back to games"** → hover any game → **"Make it mine."**
+- **Say:** *"Anyone can remix any game into their own copy — the original is untouched."*
+- **Expect:** you land in a new room you own (a "(remix)" copy).
+- **Close:** *"Games, made and remade just by talking — live for everyone. That's Starblox."*
+
+---
+
+## Safe commands (guaranteed in canned mode)
+- **Flappy:** `make the gaps wider` · `lower the gravity` · `let the birds collide` · `make the field taller`
+- **Tank:** `make shells bounce more` · `everyone moves 2× faster` · `rapid fire` · `add a speed blitz`
+- Clicking the chat **suggestion chips** is the safest move (one click, always maps).
+- **Avoid on camera:** a "manhunt" prompt — it applies rules but doesn't render visuals yet, so it looks like nothing happened. Off-script prompts may return *"I can't do that one yet."*
+
+## Gotchas & fallbacks
+- **Cold start:** pre-warm Maincloud or the first edit looks laggy.
+- **Network hiccup:** the per-room **demo preset chips** (Speed blitz, Bouncy shells, Low gravity…) apply the same changes instantly with no AI round-trip — a perfect silent fallback.
+- **Red "Disconnected" banner:** the env/db is wrong — fix before filming (shouldn't happen post-deploy).
+
+## Recording tips
+- Two side-by-side windows = safest "live for everyone" shot; phone-QR = bigger wow if you can film it.
+- Keep each edit to one command + a ~1s pause so the change reads as *live*, not pre-baked.
+- Use **fullscreen** for the tank finale.

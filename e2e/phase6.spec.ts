@@ -81,6 +81,14 @@ async function measureVy(page: Page, id: string): Promise<number> {
       }),
     GID
   );
+  // Revive first so a prior pipe-death doesn't leave the bird frozen.
+  await page.evaluate(
+    (gid) =>
+      (window as unknown as AppWindow).__APP__.callReducer("respawn", {
+        gameId: BigInt(gid),
+      }),
+    GID
+  );
   const x = await safeX(page);
   await page.evaluate(
     (args) => {
@@ -209,16 +217,26 @@ test("flappy: gravity-from-rules, multi-gap pipes, bird collision", async ({
     null,
     { timeout: 10_000 }
   );
+  const cx = await safeX(a); // a pipe-free x so neither bird dies mid-test
   for (const page of [a, b]) {
     await page.evaluate(
       (gid) =>
-        (window as unknown as AppWindow).__APP__.callReducer("debugPlace", {
+        (window as unknown as AppWindow).__APP__.callReducer("respawn", {
           gameId: BigInt(gid),
-          x: 400,
-          y: 200,
-          angle: 0,
         }),
       GID
+    );
+    await page.evaluate(
+      (args) => {
+        const [gid, px] = args as [string, number];
+        return (window as unknown as AppWindow).__APP__.callReducer("debugPlace", {
+          gameId: BigInt(gid),
+          x: px,
+          y: 200,
+          angle: 0,
+        });
+      },
+      [GID, cx]
     );
   }
   await a.waitForFunction(
@@ -241,6 +259,7 @@ test("flappy: gravity-from-rules, multi-gap pipes, bird collision", async ({
 
   // The flappy AI prompts from SMOKE_TESTS now map (canned) and apply live.
   // Note: gravity 0.45 comes back from f32 as 0.4499998 -> tolerance compare.
+  await a.click('[data-testid="edit-open"]');
   await a.fill('[data-testid="edit-input"]', "lower gravity and widen the gaps");
   await a.click('[data-testid="edit-submit"]');
   await expect(a.getByTestId("edit-status")).toContainText("done", {
@@ -269,4 +288,114 @@ test("flappy: gravity-from-rules, multi-gap pipes, bird collision", async ({
 
   await ctxA.close();
   await ctxB.close();
+});
+
+test("flappy: a head-on pipe wall ends the run; restart revives", async ({
+  page,
+}) => {
+  await page.goto(`/game/${GID}`); // room auto-joins my bird
+  await page.waitForFunction(
+    () => typeof (window as unknown as AppWindow).__APP__ !== "undefined",
+    null,
+    { timeout: 15_000 }
+  );
+  await page.waitForFunction(
+    () => (window as unknown as AppWindow).__APP__.connected() === true,
+    null,
+    { timeout: 15_000 }
+  );
+  await page.waitForFunction(
+    () => {
+      const me = (window as unknown as AppWindow).__APP__.identity();
+      return (window as unknown as AppWindow).__APP__
+        .getEntities()
+        .some((e: { owner: string; kind: string }) => e.owner === me && e.kind === "bird");
+    },
+    null,
+    { timeout: 15_000 }
+  );
+
+  // One centered gap → a deterministic solid region to fly into.
+  await setRule(page, { gaps_per_pipe: 1, pipe_gap: 1 });
+  await page.waitForFunction(
+    () => {
+      const r = (window as unknown as AppWindow).__APP__.getRules();
+      const pipes = (window as unknown as AppWindow).__APP__
+        .getEntities()
+        .filter((e: { kind: string }) => e.kind === "pipe");
+      return (
+        r?.gapsPerPipe === 1 &&
+        pipes.length > 0 &&
+        pipes.every((p: { data: string }) => {
+          try {
+            return JSON.parse(p.data).gaps.length === 1;
+          } catch {
+            return false;
+          }
+        })
+      );
+    },
+    null,
+    { timeout: 10_000 }
+  );
+
+  // Fresh run (alive, centered).
+  await page.evaluate(
+    (gid) =>
+      (window as unknown as AppWindow).__APP__.callReducer("respawn", {
+        gameId: BigInt(gid),
+      }),
+    GID
+  );
+
+  // Wait for a pipe in a testable band, then place the bird OPPOSITE its gap
+  // (i.e. into the solid pipe face) → a head-on wall hit → death.
+  await page.waitForFunction(
+    () =>
+      (window as unknown as AppWindow).__APP__
+        .getEntities()
+        .some((e: { kind: string; x: number }) => e.kind === "pipe" && e.x > 180 && e.x < 540),
+    null,
+    { timeout: 12_000 }
+  );
+  const target = await page.evaluate(() => {
+    const ps = (window as unknown as AppWindow).__APP__
+      .getEntities()
+      .filter((e: { kind: string; x: number }) => e.kind === "pipe" && e.x > 180 && e.x < 540)
+      .sort((a: { x: number }, b: { x: number }) => a.x - b.x);
+    const p = ps[0];
+    let c = 300;
+    try {
+      c = JSON.parse(p.data).gaps[0];
+    } catch {
+      /* default */
+    }
+    return { x: p.x + 35, y: c < 300 ? 545 : 55 };
+  });
+  await page.evaluate(
+    (args) => {
+      const [gid, x, y] = args as [string, number, number];
+      return (window as unknown as AppWindow).__APP__.callReducer("debugPlace", {
+        gameId: BigInt(gid),
+        x,
+        y,
+        angle: 0,
+      });
+    },
+    [GID, target.x, target.y]
+  );
+
+  // Game-over card appears (only the dead player sees it), then restart clears it.
+  await expect(page.getByTestId("gameover")).toBeVisible({ timeout: 8_000 });
+  await expect(page.getByTestId("gameover-score")).toBeVisible();
+  await page.click('[data-testid="gameover-restart"]');
+  await expect(page.getByTestId("gameover")).toBeHidden({ timeout: 8_000 });
+
+  await page.evaluate(
+    (gid) =>
+      (window as unknown as AppWindow).__APP__.callReducer("resetGame", {
+        gameId: BigInt(gid),
+      }),
+    GID
+  );
 });

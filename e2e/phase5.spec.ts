@@ -62,7 +62,8 @@ test("AI edit (canned /api/edit) applies and hot-reloads to both clients", async
     { timeout: 10_000 }
   );
 
-  // Type a plain-English edit and submit.
+  // Open the on-demand chat drawer, then type a plain-English edit and submit.
+  await a.click('[data-testid="edit-open"]');
   await a.fill(
     '[data-testid="edit-input"]',
     "make everyone twice as fast and shells bounce 5 times"

@@ -14,9 +14,11 @@ function idHex(identity: any): string {
 
 export default function Scoreboard({
   gameId,
+  compact = false,
 }: {
   gameId: string;
   gameType?: string;
+  compact?: boolean;
 }) {
   const { mod } = useStdb();
   const myId = mod ? mod.getIdentityHex() : null;
@@ -37,7 +39,10 @@ export default function Scoreboard({
   const leader = players.length ? players[0].score : 0;
 
   return (
-    <div className="panel scoreboard" data-testid="scoreboard">
+    <div
+      className={"panel scoreboard" + (compact ? " compact" : "")}
+      data-testid="scoreboard"
+    >
       <div className="score-head">
         <span>
           <Icon name="trophy" size={15} /> Scoreboard
