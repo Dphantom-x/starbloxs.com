@@ -19,6 +19,7 @@ interface StdbValue {
   identity: string | null;
   version: number;
   mod: StdbModule | null;
+  error: string | null;
 }
 
 const StdbContext = createContext<StdbValue>({
@@ -26,6 +27,7 @@ const StdbContext = createContext<StdbValue>({
   identity: null,
   version: 0,
   mod: null,
+  error: null,
 });
 
 export function useStdb(): StdbValue {
@@ -38,6 +40,7 @@ export default function StdbProvider({ children }: { children: ReactNode }) {
     identity: null,
     version: 0,
     mod: null,
+    error: null,
   });
 
   useEffect(() => {
@@ -55,6 +58,7 @@ export default function StdbProvider({ children }: { children: ReactNode }) {
           identity: stdb.getIdentityHex(),
           version: stdb.getVersion(),
           mod: stdb,
+          error: stdb.getConnectError(),
         });
       off = stdb.onChange(sync);
       sync();

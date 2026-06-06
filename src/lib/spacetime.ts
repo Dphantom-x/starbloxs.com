@@ -16,6 +16,20 @@ let connected = false;
 let identityHex: string | null = null;
 let currentGameId: bigint | null = null;
 
+// Surfaced to the UI so a failed/misconfigured connection isn't a silent,
+// forever "Connecting…". `configErrorSticky` keeps a config message (e.g. a
+// placeholder DB name) from being overwritten by the SDK's generic WS error.
+let connectError: string | null = null;
+let configErrorSticky = false;
+export function getConnectError(): string | null {
+  return connectError;
+}
+/** A DB name like `<unique-name>` or empty means the env var was never filled in. */
+function looksLikePlaceholder(v: string): boolean {
+  const s = v.trim();
+  return s === "" || s.includes("<") || s.includes(">");
+}
+
 // Lightweight change bus so React re-renders and Phaser polls see fresh cache.
 let version = 0;
 const listeners = new Set<() => void>();
@@ -61,11 +75,22 @@ export function connect(): DbConnection {
 
   const savedToken = window.localStorage.getItem(TOKEN_KEY) ?? undefined;
 
+  // Catch the most common deploy mistake before the WS even opens: the
+  // `<unique-name>` placeholder pasted verbatim into NEXT_PUBLIC_STDB_DB.
+  if (looksLikePlaceholder(DB)) {
+    connectError =
+      `NEXT_PUBLIC_STDB_DB is a placeholder ("${DB}") — set it to your real ` +
+      `database name (the one you published to Maincloud). URI=${URI}`;
+    configErrorSticky = true;
+  }
+
   let builder = DbConnection.builder()
     .withUri(URI)
     .withDatabaseName(DB)
     .onConnect((c, identity, token) => {
       connected = true;
+      connectError = null;
+      configErrorSticky = false;
       identityHex = identity.toHexString();
       try {
         window.localStorage.setItem(TOKEN_KEY, token);
@@ -100,16 +125,39 @@ export function connect(): DbConnection {
     })
     .onConnectError((_ctx, err) => {
       console.error("[stdb] connect error:", err);
+      if (!configErrorSticky) {
+        connectError =
+          `Couldn't reach the SpacetimeDB server at ${URI} (database "${DB}"). ` +
+          `Check NEXT_PUBLIC_STDB_URI / NEXT_PUBLIC_STDB_DB.`;
+      }
+      emit();
     })
     .onDisconnect((_ctx, err) => {
       connected = false;
-      if (err) console.warn("[stdb] disconnected:", err);
+      if (err) {
+        console.warn("[stdb] disconnected:", err);
+        if (!configErrorSticky) {
+          connectError = `Disconnected from ${URI} (database "${DB}").`;
+        }
+      }
       emit();
     });
 
   if (savedToken) builder = builder.withToken(savedToken);
 
   conn = builder.build();
+
+  // Belt-and-suspenders: if the socket neither connects nor errors (e.g. it
+  // just hangs against a wrong host), surface a hint rather than spin forever.
+  window.setTimeout(() => {
+    if (!connected && !connectError) {
+      connectError =
+        `Still can't reach ${URI} (database "${DB}"). ` +
+        `Check NEXT_PUBLIC_STDB_URI / NEXT_PUBLIC_STDB_DB.`;
+      emit();
+    }
+  }, 10_000);
+
   return conn;
 }
 
@@ -150,6 +198,19 @@ export function getMapFeaturesRaw() {
     if (m.gameId === currentGameId) return m;
   }
   return null;
+}
+
+/** All game_rules rows (for per-card rule chips on the home/lobby screens). */
+export function getAllRulesRaw() {
+  if (!conn) return [];
+  return [...conn.db.game_rules.iter()];
+}
+
+/** Players in a specific game, regardless of the current game filter. */
+export function getPlayersForRaw(gameId: string) {
+  if (!conn) return [];
+  const gid = BigInt(gameId);
+  return [...conn.db.player.iter()].filter((p) => p.gameId === gid);
 }
 
 // ---- reducer calls (camelCase args; gameId is a bigint) ----

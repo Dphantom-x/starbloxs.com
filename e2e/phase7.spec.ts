@@ -27,6 +27,10 @@ test("create a flappy game by talking", async ({ browser }) => {
   );
   await a.click('[data-testid="create-submit"]');
 
+  // The preview confirm step appears (derived from the real AI patch).
+  await a.waitForSelector('[data-testid="create-confirm"]', { timeout: 15_000 });
+  await a.click('[data-testid="create-confirm"]');
+
   await a.waitForURL(/\/game\/\d+$/, { timeout: 15_000 });
   const newId = a.url().match(/\/game\/(\d+)/)?.[1] as string;
   expect(newId).toBeTruthy();

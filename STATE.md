@@ -1,6 +1,6 @@
 # STATE
 
-_Last updated: 2026-06-06 — Phase 8 local bits done; cloud deploy pending (guided)._
+_Last updated: 2026-06-06 — **Starblox UI port complete** (full reskin + real lobby); cloud deploy pending (guided)._
 
 ## Environment (verified)
 - Node 24.12, npm 11.6, SpacetimeDB CLI **2.4.1** (local), npm `spacetimedb` pinned **2.4.1**
@@ -12,7 +12,11 @@ _Last updated: 2026-06-06 — Phase 8 local bits done; cloud deploy pending (gui
 ## Phase status — feature-complete & deploy-ready
 - [x] 0–7 (scaffold, home, multiplayer, tanks, hot-reload, AI edit, flappy, create/remix) — GREEN
 - [x] **8 (local bits)** — Room QR, env-driven prod config (`.env.example`), `DEPLOY.md`, demo hardening; **`npm run build` passes**
-- [ ] **8 (cloud deploy)** — Maincloud publish + Vercel deploy + cross-device. **Guided, needs user**: GitHub login for `spacetime login`, a globally-unique Maincloud db name, Vercel + (optional) Anthropic accounts. Steps in `DEPLOY.md`.
+- [x] **Starblox UI** — full light-metallic reskin (`globals.css` design system; primitives in `src/components/ui.tsx`; persistent `AppShell` top bar). New **real lobby** route `/lobby/[gameId]` (home card → lobby → **Play** → room); create has a **preview-confirm** step; 404 page. All SpacetimeDB wiring preserved; product renamed **Starblox**. Routing note: home cards → `/lobby/{id}`, lobby **Play** + per-card/lobby **Make it mine** → `/game/{id}`.
+- [x] **8 (backend cloud)** — module **published to Maincloud as `starblox-prod`** (2026-06-06); `init` seeded Tank Trouble + Flappy Arena; verified a local build with the prod env (`wss://maincloud.spacetimedb.com` + `starblox-prod`) connects + syncs the seeds. Dashboard: https://spacetimedb.com/starblox-prod
+- [x] **Connection-error UX** — failed/misconfigured connections now show a red **Disconnected** pill + a banner naming the bad URL/db (and detecting a literal `<placeholder>` db name), instead of a silent forever-"Connecting…". (`spacetime.ts` `getConnectError` → `StdbProvider.error` → `Conn`/`AppShell` banner.)
+- [ ] **8 (frontend cloud)** — **user step**: set Vercel env `NEXT_PUBLIC_STDB_URI=wss://maincloud.spacetimedb.com`, `NEXT_PUBLIC_STDB_DB=starblox-prod`, `NEXT_PUBLIC_TEST_MODE=1`, then **redeploy** (NEXT_PUBLIC_* bake in at build time). Then run the production smoke test in `SMOKE_TESTS.md`.
+- [ ] **Deferred polish** — manhunt-climax visuals (fog/sparks/hunter/boost/laser don't render yet); mobile/room responsiveness (the fixed 800×600 canvas overflows phones).
 
 ## Tests: 10 Playwright e2e (serial) + 14 Vitest unit green; `tsc --noEmit` clean; `next build` clean
 Every spec phase has a Playwright test (`e2e/phaseN.spec.ts`); mechanics/Zod covered by Vitest (`src/lib/__tests__`). Manual smoke tests per phase in `SMOKE_TESTS.md`.

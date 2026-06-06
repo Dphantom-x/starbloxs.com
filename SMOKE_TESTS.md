@@ -131,3 +131,77 @@ The cloud deploy itself is a **guided step we'll do together** — see `DEPLOY.m
 4. **Demo hardening:** game-type-aware demo buttons + per-room **Reset** + the `AI_CANNED=1` fallback are all in place.
 
 **DONE WHEN:** `npm run build` passes and the room QR/copy work. _(Real cross-device join over the internet comes with the Maincloud + Vercel deploy.)_
+
+---
+
+## Starblox UI — full redesign + real lobby ✅
+The whole app is reskinned to the **Starblox** light-metallic theme (brick logo, chrome/graphite, Geist), and the home → room journey now goes through a **real lobby page**. All wiring is unchanged — every screen reads live from SpacetimeDB.
+
+**App shell**
+1. Every page has the sticky **top bar**: brick logo + **Starblox** wordmark (left), a live **Connected / Connecting…** dot + **Create** button (right). The browser tab title reads **Starblox**.
+
+**Home** (`/`)
+1. Hero "**Games, made and remade by talking.**" with a dashed **Create with AI** tile (marble + ＋).
+2. **Search** box + **All / Tanks / Flappy** filter chips actually filter the grid (type in the search, toggle a chip).
+3. Cards live under **Your games** (only games you own) / **Community**. Each card shows a **procedural thumbnail** (tank maze or flappy sky), the name, a TANKS/FLAPPY tag, and **rule chips**. Hover a card → a play overlay + **Make it mine**; your own games also show a **✕** on hover.
+4. Clicking a card opens its **lobby** (not the room directly).
+
+**Lobby** (`/lobby/{id}`)
+1. Left: large preview thumbnail + a **Share · scan to join** panel with the real room URL and a **Show QR** toggle (scannable QR of `…/game/{id}`).
+2. Right: owner tag (**Created by you** / **By a player**), name, blurb, **Rules** chips, and a **Live players** panel (shows who's currently in the match, or "be the first").
+3. **Play** drops you into the live room; **Make it mine** clones it into a room you own; **Delete** (your games only) removes it and returns home.
+
+**Create** (`/create`)
+1. Marble + textarea; **⏎ to build**. After you submit, a **preview card** appears ("Looks like… {name}", type tag, rule chips) derived from the real AI patch.
+2. **Looks good — create** makes exactly that game and opens the room; **Tweak it** returns to the prompt. **Try** chips prefill examples.
+
+**Room** (`/game/{id}`)
+1. Big game name + meta row (Connected · controls · **Room {id}**) and a **Scan to join** QR popover (with copy link).
+2. Left: the **untouched 800×600 Phaser canvas** sits in a dark stage with a `800 × 600 · live` badge; demo presets + Reset below (test mode).
+3. Right rail: **Edit with AI** chat panel (marble spins while thinking; subtitle shows live status; suggestion chips; applied edits show a ✓ "done"; refusals show in red) and a live **Scoreboard** (bars fill toward the win score, your row highlighted).
+
+**DONE WHEN:** the app is fully Starblox-themed, clicking a home card → lobby → **Play** → room works, create shows the preview-confirm step, and the room's AI edits/scoreboard/QR all behave exactly as before. _Automated: all 10 e2e specs pass (`npx playwright test`), `npm run build` is green._
+
+---
+
+## Production smoke test — deployed (Vercel + Maincloud `starblox-prod`) ✅
+Run this on the **live Vercel URL** after the redeploy. Backend is published to Maincloud as `starblox-prod` and seeded (Tank Trouble + Flappy Arena).
+
+### Pre-flight (one time, in Vercel)
+- Env vars set **exactly** (no angle brackets, no quotes): `NEXT_PUBLIC_STDB_URI=wss://maincloud.spacetimedb.com`, `NEXT_PUBLIC_STDB_DB=starblox-prod`, `NEXT_PUBLIC_TEST_MODE=1` (optional: `ANTHROPIC_API_KEY`).
+- **Redeployed** after setting them (NEXT_PUBLIC_* bake in at build time).
+
+### A. Loads & connects to the cloud
+1. Open the deployed URL. Top bar shows the brick logo + **Starblox** and a green **● Connected** within ~1–2s (Maincloud scales from zero, so the very first hit can take a beat).
+2. **No red banner** appears. (A red "Disconnected" banner naming a bad URL/db = env wrong → fix env + redeploy.)
+3. Under **Community** you see **Tank Trouble** (tanks) and **Flappy Arena** (flappy) with thumbnails + rule chips. _Seeing these = the browser is talking to Maincloud._
+
+### B. Browse
+1. Type in **Search** and toggle **All / Tanks / Flappy** — the grid filters.
+
+### C. Lobby + share
+1. Click **Tank Trouble** → its **lobby** opens (preview, owner tag, rules, Live players).
+2. Click **Show QR** → a QR + the **real deployed** room URL (`https://<your-app>/game/1`) appears.
+3. Click **Play** → you land in `/game/1`.
+
+### D. Room (single device)
+1. The 800×600 canvas renders the maze in the dark stage with a `live` badge; meta row shows **Connected · controls · Room 1**.
+2. Arrow keys drive your green tank; **space** fires; the **Scoreboard** lists you.
+
+### E. Real cross-device multiplayer (the Maincloud payoff)
+1. On a **laptop**, enter a room; click **Scan to join** and scan the QR with a **phone on cellular** (different network than the laptop).
+2. The phone opens the **same room** and a second tank/bird appears in **both** views.
+3. Move on one device → it moves on the other within a fraction of a second. _This is the proof that every device shares one live match through Maincloud — no tunneling._
+
+### F. AI edit, live for everyone
+1. In the room's **Edit with AI** box (or a suggestion chip) send **"everyone moves 2× faster"** (tanks) / **"make the gaps wider"** (flappy).
+2. The chat shows a ✓ "done" and the change takes effect in **all** connected devices at once. A nonsense prompt like **"order me a pizza"** is politely refused (red message containing "can't").
+
+### G. Create & remix
+1. **Create** → describe **"a multiplayer flappy bird, tall, 3 gaps, birds collide"** → **Create** → preview card → **Looks good — create** → you're dropped into a new live Flappy room (open it on a 2nd device to confirm it's shared).
+2. On the home/lobby, **Make it mine** on a game → a new copy you own; the original is unchanged. Your own games show a **✕** to delete.
+
+### H. Demo fallback
+1. In any room the **demo** preset chips apply cached rule changes instantly (network-independent), and **Reset** restores defaults.
+
+**DONE WHEN:** the live URL connects to Maincloud (seeded games visible, no red banner), two devices on different networks share one match, AI/demo edits hot-reload to everyone, and create/remix work. _If anything fails to connect, the red banner now names the exact URL/db it tried — match it against the env above._

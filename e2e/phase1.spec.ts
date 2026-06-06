@@ -43,9 +43,11 @@ test("home menu shows seeded games and routes into a room", async ({
   // Create tile is present.
   await expect(page.getByTestId("create-tile")).toBeVisible();
 
-  // Clicking a card routes into its room.
+  // Clicking a card opens its lobby; Play routes into the live room.
   const firstId = await cards.first().getAttribute("data-game-id");
   await cards.first().click();
+  await page.waitForURL(`**/lobby/${firstId}`, { timeout: 10_000 });
+  await page.getByTestId("lobby-play").click();
   await page.waitForURL(`**/game/${firstId}`, { timeout: 10_000 });
   await expect(page.getByTestId("game-room")).toBeVisible();
   await expect(page.getByTestId("room-title")).toContainText(`Room ${firstId}`);

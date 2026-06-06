@@ -56,8 +56,8 @@ export default function GameCanvas({ gameId }: { gameId: string }) {
     <div
       ref={containerRef}
       data-testid="game-canvas"
-      className="overflow-hidden rounded-lg border border-black/15"
-      style={{ width: 800, height: 600 }}
+      className="overflow-hidden"
+      style={{ width: 800, height: 600, borderRadius: 12, display: "block" }}
     />
   );
 }

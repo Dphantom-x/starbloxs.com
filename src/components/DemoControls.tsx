@@ -1,8 +1,9 @@
 "use client";
 
 // Cached one-click rule edits — game-type aware. For manually verifying the
-// live hot-reload (Phase 4) and as the network-independent demo-day fallback.
-// Only shown when NEXT_PUBLIC_TEST_MODE === '1'.
+// live hot-reload and as the network-independent demo-day fallback. Only shown
+// when NEXT_PUBLIC_TEST_MODE === '1'.
+import { useState } from "react";
 import { useStdb } from "./StdbProvider";
 
 const TANK_PRESETS: { label: string; patch: object }[] = [
@@ -38,30 +39,35 @@ export default function DemoControls({
   gameType: string;
 }) {
   const { mod } = useStdb();
+  const [active, setActive] = useState<string | null>(null);
   if (!mod || process.env.NEXT_PUBLIC_TEST_MODE !== "1") return null;
 
   const presets = gameType === "flappy" ? FLAPPY_PRESETS : TANK_PRESETS;
-  const apply = (patch: object) =>
+  const apply = (label: string, patch: object) => {
+    setActive(label);
     mod.applyRulesPatch(gameId, JSON.stringify(patch));
+  };
 
   return (
-    <div
-      data-testid="demo-controls"
-      className="mt-4 flex flex-wrap items-center gap-2"
-    >
-      <span className="text-xs text-gray-400">demo:</span>
-      {presets.map((p) => (
-        <button
-          key={p.label}
-          onClick={() => apply(p.patch)}
-          className="rounded-md border border-black/15 px-2.5 py-1 text-xs hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
-        >
-          {p.label}
-        </button>
-      ))}
+    <div className="panel demo" data-testid="demo-controls">
+      <span className="demo-label mono">demo</span>
+      <div className="demo-presets">
+        {presets.map((p) => (
+          <button
+            key={p.label}
+            className={"chip" + (active === p.label ? " chip-on" : "")}
+            onClick={() => apply(p.label, p.patch)}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
       <button
-        onClick={() => mod.resetGame(gameId)}
-        className="rounded-md border border-black/15 px-2.5 py-1 text-xs hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+        className="btn btn-ghost btn-sm"
+        onClick={() => {
+          setActive(null);
+          mod.resetGame(gameId);
+        }}
       >
         Reset
       </button>
