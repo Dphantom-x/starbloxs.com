@@ -1,0 +1,19 @@
+/*
+ * Required by SpacetimeDB (mirrors `spacetime init --lang typescript`).
+ * target/lib/module/isolatedModules/noEmit must not be changed.
+ */
+{
+  "compilerOptions": {
+    "strict": true,
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+
+    "target": "ESNext",
+    "lib": ["ES2021", "dom"],
+    "module": "ESNext",
+    "isolatedModules": true,
+    "noEmit": true
+  },
+  "include": ["./**/*"]
+}

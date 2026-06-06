@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($tools = @\\('git','node','npm','python','py','java','dotnet','go','rustc','code'\\); foreach \\($t in $tools\\) { $c = Get-Command $t -ErrorAction SilentlyContinue; if \\($c\\) { \"{0,-8} {1}\" -f $t, $c.Source } else { \"{0,-8} \\(not installed\\)\" -f $t } })"
+    ]
+  }
+}
