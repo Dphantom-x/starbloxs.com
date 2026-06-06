@@ -2,6 +2,12 @@
 
 _Last updated: 2026-06-06 — **Starblox UI port complete** (full reskin + real lobby); cloud deploy pending (guided)._
 
+> 🚩 **DIRECTION CHANGE — read `docs/direction/` first.** The owner has decided to build
+> **Option B**: turn Starblox from a *config app* (AI tunes 2 pre-built templates) into a
+> platform where the **AI genuinely writes games from scratch** (thin pseudo-engine + agent
+> write→run→fix loop). Everything below describes the *current* Option-A codebase, which
+> stays as the reliable backbone/fallback. See `docs/direction/README.md`.
+
 ## Environment (verified)
 - Node 24.12, npm 11.6, SpacetimeDB CLI **2.4.1** (local), npm `spacetimedb` pinned **2.4.1**
 - Next **16.2.7** + React **19.2** + Tailwind 4 + **Phaser 4.1** + **react-qr-code**; AI: **ai ^6 + @ai-sdk/anthropic ^3 + zod ^3.25**; **vitest ^4**
