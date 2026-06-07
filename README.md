@@ -41,7 +41,7 @@ the single most important thing to understand about the repo:
 **The cached responses are snapshots of this exact pipeline's output** — the seed
 reference games and pre-validated edits — not stand-ins for something that doesn't
 exist. The generation / loader / sandbox code is right here in `src/`; a key turns
-it on. We demo in cached mode for reliability, and we don't claim it's live when it
+it on. It runs in cached mode for reliability and never pretends to be live when it
 isn't. To run it live, add to `.env.local`:
 
 ```
@@ -85,7 +85,13 @@ Deploying to production: [DEPLOY.md](DEPLOY.md).
 
 ## Docs
 
-- [PROJECT.md](PROJECT.md) — what we're building and the roadmap.
+- [PROJECT.md](PROJECT.md) — the project vision and roadmap.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — the pipeline, in depth.
-- [DEMO_PLAN.md](DEMO_PLAN.md) — the click-by-click demo + production pre-flight.
-- [HANDOFF.md](HANDOFF.md) — pick-up notes for the next session.
+- [DEMO_SCRIPT.md](DEMO_SCRIPT.md) — the demo run-of-show + production pre-flight.
+- [DEPLOY.md](DEPLOY.md) — deploying to production.
+
+## Author
+
+Built solo by **Aldo Hidalgo** — Instagram [@ig.aldo_o](https://www.instagram.com/ig.aldo_o/).
+Starblox is an AI-native multiplayer game platform on SpacetimeDB: describe a game,
+the AI builds it, and it's instantly multiplayer and editable live.

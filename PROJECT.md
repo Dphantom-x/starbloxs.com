@@ -11,13 +11,13 @@ both:
   there, free and instant, for every game, via SpacetimeDB.
 
 The long-term thesis: a **"pseudo-engine"** where an AI writes a real game against
-a generic SDK and our runtime plays it live with friends. Get this right and the
+a generic SDK and the runtime plays it live with friends. Get this right and the
 pseudo-engine grows into a genuine, AI-native game engine — the way you'd make a
 game on Roblox, except you describe it instead of building it by hand.
 
 ## Where it is now — an honest MVP
 
-This repo is a **proof of concept**, and we're deliberate about what that means:
+This repo is a **proof of concept**, and I'm deliberate about what that means:
 
 - ✅ The **multiplayer engine** is real and tested (host-authoritative tick →
   SpacetimeDB → all clients). This is the hard part and it works.
@@ -29,10 +29,10 @@ This repo is a **proof of concept**, and we're deliberate about what that means:
   that same pipeline so the demo is offline-reliable.
 - ✅ **Live editing** of a running game works for everyone, mid-match.
 - 🚧 The pseudo-engine is intentionally **simple and frail** today: a small SDK,
-  two genres, a single-host model, a sandbox we scaffold rather than harden. That's
+  two genres, a single-host model, a sandbox scaffolded rather than hardened. That's
   the MVP boundary, not the ceiling.
 
-We're proving the concept end-to-end, not shipping a finished engine — and we say
+I'm proving the concept end-to-end, not shipping a finished engine — and I say
 so plainly. The cached demo assets are snapshots of the real pipeline, documented
 as such in the code and the [README](README.md).
 

@@ -1,8 +1,8 @@
-# Deploy guide (Phase 8)
+# Deploy guide
 
 The app runs fully locally today. This is the guided path to put it on the
-internet and make it phone-joinable. **We'll do this together when you're ready
-with accounts** — nothing here is automated yet.
+internet and make it phone-joinable. **Run these steps when you're ready** —
+nothing here is automated yet.
 
 ## 1. Backend → SpacetimeDB Maincloud
 > Throughout this guide, **`starblox-prod` is a stand-in** — pick your own
