@@ -10,6 +10,9 @@ import { proofGame } from "@/games/proof";
 import { controlsGame } from "@/games/controls";
 import { flappyGame } from "@/games/flappy";
 import { tankGame } from "@/games/tank";
+import { compileGameModule } from "@/engine/loader";
+import { GENERATED_GAMES } from "@/games/generated";
+import type { GameModule } from "@/engine/types";
 
 const GAME_IDS: Record<string, string> = {
   proof: "9000001",
@@ -32,11 +35,28 @@ export default function EngineTestPage() {
     const params = new URLSearchParams(window.location.search);
     const isHost = params.get("host") === "1";
     const gk = params.get("game");
-    const gameKey: keyof typeof GAMES =
-      gk === "controls" || gk === "flappy" || gk === "tank" ? gk : "proof";
-    setIsFlappy(gameKey === "flappy");
-    const game = GAMES[gameKey];
-    const gameId = GAME_IDS[gameKey];
+    let game: GameModule;
+    let gameId: string;
+    if (gk === "gen") {
+      // Compile an AI-generated game from its CODE STRING through the real loader
+      // — the "string -> compile -> run" pipeline, genuinely exercised.
+      const entry = GENERATED_GAMES[params.get("id") ?? ""];
+      if (!entry) return;
+      try {
+        game = compileGameModule(entry.code);
+      } catch (err) {
+        console.error("[engine-test] generated game failed to compile:", err);
+        return;
+      }
+      gameId = entry.gameId;
+      setIsFlappy(false);
+    } else {
+      const gameKey: keyof typeof GAMES =
+        gk === "controls" || gk === "flappy" || gk === "tank" ? gk : "proof";
+      setIsFlappy(gameKey === "flappy");
+      game = GAMES[gameKey];
+      gameId = GAME_IDS[gameKey];
+    }
     mod.setCurrentGameId(gameId);
 
     let destroyed = false;
@@ -81,6 +101,19 @@ export default function EngineTestPage() {
       myId: () => mod.getIdentityHex(),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       count: (kind: string) => mod.getEntitiesRaw().filter((e: any) => e.kind === kind).length,
+      // Generic helpers for the generated-game gameplay tests.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      all: () => mod.getEntitiesRaw().map((e: any) => ({ kind: e.kind, x: e.x, y: e.y })),
+      dataOf: (kind: string) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const e = mod.getEntitiesRaw().find((x: any) => x.kind === kind);
+        if (!e) return null;
+        try {
+          return JSON.parse(e.data);
+        } catch {
+          return null;
+        }
+      },
       firstOf: (kind: string) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const e = mod.getEntitiesRaw().find((x: any) => x.kind === kind);
