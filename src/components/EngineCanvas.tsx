@@ -9,9 +9,27 @@ import { useStdb } from "./StdbProvider";
 import { mountEngine } from "@/engine/runtime";
 import { flappyGame } from "@/games/flappy";
 import { tankGame } from "@/games/tank";
+import { compileGameModule } from "@/engine/loader";
+import { getGameSource } from "@/lib/gameStore";
 import type { GameModule } from "@/engine/types";
 
+// The two built-in reference games, precompiled (a compiled cache). Any game can
+// also arrive as stored source and load through the same loader (resolveGame).
 const MODULES: Record<string, GameModule> = { eflappy: flappyGame, etank: tankGame };
+
+// Generated games load their stored module via the loader; built-in reference
+// games (whose stored "code" is just a pointer) fall back to the precompiled one.
+function resolveGame(gameId: string, gameType: string): GameModule {
+  const stored = getGameSource(gameId);
+  if (stored?.code) {
+    try {
+      return compileGameModule(stored.code);
+    } catch {
+      /* reference/placeholder source → use the built-in module */
+    }
+  }
+  return MODULES[gameType] ?? flappyGame;
+}
 
 export default function EngineCanvas({
   gameId,
@@ -25,7 +43,7 @@ export default function EngineCanvas({
 
   useEffect(() => {
     if (!ref.current || !mod) return;
-    const game = MODULES[gameType] ?? flappyGame;
+    const game = resolveGame(gameId, gameType);
 
     // Host election: the lowest identity among this game's engine_input rows.
     const host = () => {

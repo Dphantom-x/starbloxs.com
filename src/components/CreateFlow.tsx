@@ -9,7 +9,9 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStdb } from "./StdbProvider";
 import { Icon, Marble, Page, BackLink } from "./ui";
-import { cannedCreate, type CreateStep, type Turn } from "@/lib/createAgent";
+import type { CreateStep, Turn } from "@/lib/createAgent";
+import { requestCreateStep, buildGame } from "@/lib/buildAgent";
+import { saveGameSource } from "@/lib/gameStore";
 
 type Phase = "idle" | "clarifying" | "building" | "testing" | "ready";
 type Confirmed = Extract<CreateStep, { kind: "confirmed" }>;
@@ -33,28 +35,39 @@ export default function CreateFlow() {
 
   const busy = phase === "building" || phase === "testing";
 
-  function submitPrompt() {
+  async function submitPrompt() {
     const t = text.trim();
     if (!t || !connected) return;
-    const step = cannedCreate([{ role: "user", text: t }]);
-    if (step.kind === "question") {
-      setTurns([{ role: "user", text: t }, { role: "ai", text: step.text }]);
-      setPhase("clarifying");
+    try {
+      // Real pipeline: /api/create (live model when keyed, captured output in
+      // demo mode). Turn 1 returns one clarifying question.
+      const { step } = await requestCreateStep([{ role: "user", text: t }]);
+      if (step.kind === "question") {
+        setTurns([{ role: "user", text: t }, { role: "ai", text: step.text }]);
+        setPhase("clarifying");
+      }
+    } catch {
+      setErr("couldn't reach the generator");
     }
   }
 
-  function submitReply() {
+  async function submitReply() {
     const r = reply.trim();
     if (!r) return;
     const h: Turn[] = [...turns, { role: "user", text: r }];
-    const step = cannedCreate(h);
     setReply("");
-    if (step.kind === "confirmed") {
-      setTurns([...h, { role: "ai", text: "Confirmed — building it now." }]);
-      setConfirmed(step);
-      setPhase("building");
-    } else {
-      setTurns([...h, { role: "ai", text: step.text }]);
+    try {
+      // buildGame generates the module and (in live mode) compile-checks + fixes it.
+      const { step } = await buildGame(h);
+      if (step.kind === "confirmed") {
+        setTurns([...h, { role: "ai", text: "Confirmed — building it now." }]);
+        setConfirmed(step);
+        setPhase("building");
+      } else {
+        setTurns([...h, { role: "ai", text: step.text }]);
+      }
+    } catch {
+      setErr("couldn't generate the game");
     }
   }
 
@@ -91,6 +104,15 @@ export default function CreateFlow() {
         setErr("could not create the game");
         return;
       }
+      // Persist the module this game was generated from, so the room loads it
+      // (engine/loader) instead of relying on a built-in. Seed games store their
+      // reference capture; a live-generated game stores its real source.
+      saveGameSource(id, {
+        gameType: confirmed.gameType,
+        name: confirmed.name,
+        summary: confirmed.summary,
+        code: confirmed.code,
+      });
       router.push(`/game/${id}`);
     } catch {
       setErr("something went wrong");
