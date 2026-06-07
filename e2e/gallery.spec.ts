@@ -104,3 +104,20 @@ test("generated 'asteroids' compiles from a string and plays", async ({ page }, 
   await page.screenshot({ path: testInfo.outputPath("asteroids.png") });
   expect(errs).toEqual([]);
 });
+
+test("generated 'evilgenie' compiles from a string and plays", async ({ page }, testInfo) => {
+  const errs = watch(page);
+  await boot(page, "evilgenie");
+  // wisher + wish orbs existing proves the module compiled + ran (and draw.text did not throw).
+  await page.waitForFunction(
+    () => (window as unknown as W).__ENGINE__.count("egw") >= 1 && (window as unknown as W).__ENGINE__.count("ego") >= 3,
+    null,
+    { timeout: 15_000 }
+  );
+  const p0 = await firstOf(page, "egw");
+  // sweep through the wish field so the genie grants (and twists) a few wishes for the clip
+  await drive(page, ["ArrowUp", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowRight", "ArrowLeft", "ArrowDown"], 320);
+  expect(moved(p0, await firstOf(page, "egw"))).toBeGreaterThan(15);
+  await page.screenshot({ path: testInfo.outputPath("evilgenie.png") });
+  expect(errs).toEqual([]);
+});

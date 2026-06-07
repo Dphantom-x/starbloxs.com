@@ -50,7 +50,8 @@ api (EngineApi):
   api.config()      -> live per-game config object (the live-edit knobs)
   api.draw          -> immediate-mode 2D, 800x600, colors 0xRRGGBB:
      rect, roundedRect, circle, triangle, strokeRect, strokeRoundedRect,
-     strokeCircle, line, gradientRect, save, restore, translate, rotate, scale
+     strokeCircle, line, gradientRect, save, restore, translate, rotate, scale,
+     text(x, y, string, size?, color?, align?)  // align "left"|"center"|"right"
 
 An entity is { key:string, kind:string, x, y, vx?, vy?, angle?, data?:object }.
 Use a unique \`kind\` per game so the legacy server tick ignores it (e.g. "gbird").

@@ -18,8 +18,14 @@ type AnyPhaser = any;
 
 const TICK_MS = 33; // ~30Hz fixed host tick
 
+// Text is a retained GameObject in Phaser, not a Graphics fill — so we pool Text
+// objects and reuse them each frame (immediate-mode over a retained pool).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function makeDraw(g: any): DrawApi {
+type TextState = { scene: any; pool: any[]; idx: number };
+const colorHex = (c: number): string => "#" + ((c >>> 0) & 0xffffff).toString(16).padStart(6, "0");
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function makeDraw(g: any, ts: TextState): DrawApi {
   return {
     rect: (x, y, w, h, color, alpha = 1) => { g.fillStyle(color, alpha); g.fillRect(x, y, w, h); },
     roundedRect: (x, y, w, h, r, color, alpha = 1) => { g.fillStyle(color, alpha); g.fillRoundedRect(x, y, w, h, r); },
@@ -30,6 +36,22 @@ function makeDraw(g: any): DrawApi {
     strokeCircle: (x, y, r, color, width = 2, alpha = 1) => { g.lineStyle(width, color, alpha); g.strokeCircle(x, y, r); },
     line: (x1, y1, x2, y2, color, width = 2, alpha = 1) => { g.lineStyle(width, color, alpha); g.lineBetween(x1, y1, x2, y2); },
     gradientRect: (x, y, w, h, top, bottom, alpha = 1) => { g.fillGradientStyle(top, top, bottom, bottom, alpha); g.fillRect(x, y, w, h); },
+    text: (x, y, str, size = 16, color = 0xffffff, align = "left") => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let t: any = ts.pool[ts.idx];
+      if (!t) {
+        t = ts.scene.add.text(0, 0, "", { fontFamily: "Geist, system-ui, sans-serif", fontStyle: "600" });
+        t.setDepth(20);
+        ts.pool[ts.idx] = t;
+      }
+      t.setText(String(str));
+      t.setFontSize(size);
+      t.setColor(colorHex(color));
+      t.setOrigin(align === "center" ? 0.5 : align === "right" ? 1 : 0, align === "center" ? 0.5 : 0);
+      t.setPosition(x, y);
+      t.setVisible(true);
+      ts.idx++;
+    },
     save: () => g.save(),
     restore: () => g.restore(),
     translate: (x, y) => g.translateCanvas(x, y),
@@ -42,7 +64,7 @@ const NOOP = () => {};
 const NOOP_DRAW: DrawApi = {
   rect: NOOP, roundedRect: NOOP, circle: NOOP, triangle: NOOP,
   strokeRect: NOOP, strokeRoundedRect: NOOP, strokeCircle: NOOP,
-  line: NOOP, gradientRect: NOOP, save: NOOP, restore: NOOP, translate: NOOP, rotate: NOOP, scale: NOOP,
+  line: NOOP, gradientRect: NOOP, text: NOOP, save: NOOP, restore: NOOP, translate: NOOP, rotate: NOOP, scale: NOOP,
 };
 
 function parseInput(s: string): InputState {
@@ -75,6 +97,7 @@ export function mountEngine(
   let cursors: any = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let gfx: any = null;
+  const textState: TextState = { scene: null, pool: [], idx: 0 };
   let acc = 0;
   let lastSent: string | null = null;
 
@@ -117,7 +140,8 @@ export function mountEngine(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     create(this: any) {
       gfx = this.add.graphics();
-      api.draw = makeDraw(gfx);
+      textState.scene = this;
+      api.draw = makeDraw(gfx, textState);
       cursors = this.input.keyboard.createCursorKeys();
       this.input.keyboard.addCapture(["UP", "DOWN", "LEFT", "RIGHT", "SPACE"]);
       if (game.init) game.init(api);
@@ -144,6 +168,9 @@ export function mountEngine(
         if (ticked) mod.commitEntities(gameId, JSON.stringify(local));
       }
       if (gfx) gfx.clear();
+      // reset the text pool (hide all; render() re-shows the ones it draws)
+      for (const t of textState.pool) t.setVisible(false);
+      textState.idx = 0;
       game.render(api);
     },
   };

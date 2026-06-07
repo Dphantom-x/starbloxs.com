@@ -248,6 +248,76 @@ const ASTEROIDS = `(function () {
   };
 })`;
 
+// ---- evil genie: make a wish; the genie grants it, horribly twisted ----
+const EVILGENIE = `(function () {
+  var W = 800, H = 600, PR = 15, OR = 22;
+  var WISHES = [
+    { w: "a million dollars", t: "GRANTED. Crushed under 1,000,000 coins.", fx: "crush" },
+    { w: "to fly", t: "GRANTED. You can fly. You cannot land.", fx: "fly" },
+    { w: "to live forever", t: "GRANTED. Forever. Long after everyone is gone.", fx: "stone" },
+    { w: "to be famous", t: "GRANTED. Now wanted in 12 countries.", fx: "famous" },
+    { w: "more wishes", t: "GRANTED. -1 wish. You owe the genie now.", fx: "debt" },
+    { w: "to never be bored", t: "GRANTED. Something now chases you. Always.", fx: "chase" },
+    { w: "a bigger house", t: "GRANTED. It will not stop growing.", fx: "grow" },
+    { w: "true love", t: "GRANTED. It loves someone else.", fx: "heart" }
+  ];
+  return {
+    id: "evilgenie",
+    _wseq: 0,
+    _rf: 0,
+    tick: function (api) {
+      var dt = api.dt, locals = api.local();
+      var pw = {}, orbs = [];
+      for (var i = 0; i < locals.length; i++) { var e = locals[i]; if (e.kind === "egw") pw[e.data.pid] = e; else if (e.kind === "ego") orbs.push(e); }
+      while (orbs.length < 5) { this._wseq += 1; var ang = this._wseq * 2.3; orbs.push({ key: "ego:" + this._wseq, kind: "ego", x: 120 + (this._wseq * 173) % 560, y: 140 + (this._wseq * 97) % 300, vx: Math.cos(ang) * 40, vy: Math.sin(ang) * 40, data: { wish: this._wseq % WISHES.length } }); }
+      var inputs = api.players(), out = [];
+      for (var p = 0; p < inputs.length; p++) {
+        var pl = inputs[p], inp = pl.input;
+        var w = pw[pl.id]; if (!w) w = { key: "egw:" + pl.id, kind: "egw", x: W / 2, y: H - 110, data: { pid: pl.id, curse: -1, curseT: 0, wish: -1, score: 0 } };
+        if (w.data.curse < 0) {
+          w.x = Math.max(PR, Math.min(W - PR, w.x + ((inp.right ? 1 : 0) - (inp.left ? 1 : 0)) * 235 * dt));
+          w.y = Math.max(PR, Math.min(H - PR, w.y + ((inp.down ? 1 : 0) - (inp.up ? 1 : 0)) * 235 * dt));
+          for (var o = 0; o < orbs.length; o++) { var ob = orbs[o]; if (Math.hypot(w.x - ob.x, w.y - ob.y) < PR + OR) { w.data.curse = ob.data.wish; w.data.wish = ob.data.wish; w.data.curseT = 3.6; this._wseq += 1; ob.data.wish = this._wseq % WISHES.length; ob.x = 120 + (this._wseq * 173) % 560; ob.y = 140 + (this._wseq * 97) % 300; break; } }
+        } else {
+          w.data.curseT = Math.round((w.data.curseT - dt) * 100) / 100;
+          if (WISHES[w.data.curse].fx === "fly") w.y -= 150 * dt;
+          if (w.data.curseT <= 0) { w.data.curse = -1; w.data.score = (w.data.score || 0) + 1; w.x = W / 2; w.y = H - 110; }
+        }
+        out.push(w);
+      }
+      for (var o2 = 0; o2 < orbs.length; o2++) { var ob2 = orbs[o2]; ob2.x += (ob2.vx || 0) * dt; ob2.y += (ob2.vy || 0) * dt; if (ob2.x < OR) { ob2.x = OR; ob2.vx = Math.abs(ob2.vx || 30); } if (ob2.x > W - OR) { ob2.x = W - OR; ob2.vx = -Math.abs(ob2.vx || 30); } if (ob2.y < 100) { ob2.y = 100; ob2.vy = Math.abs(ob2.vy || 30); } if (ob2.y > H - 100) { ob2.y = H - 100; ob2.vy = -Math.abs(ob2.vy || 30); } out.push(ob2); }
+      api.setLocal(out);
+    },
+    render: function (api) {
+      var me = api.me(); var t = (this._rf = (this._rf || 0) + 1) / 60;
+      function cursed(x, y, fx, mine) {
+        var base = mine ? 0x6ef0a6 : 0x8aa0ff;
+        if (fx === "crush") { for (var c = 0; c < 9; c++) api.draw.circle(x - 44 + c * 11, y - 130 + ((t * 280 + c * 64) % 280), 6, 0xffd23f); api.draw.rect(x - 26, y + 6, 52, 11, base); api.draw.text(x, y - 4, "x_x", 15, 0xffffff, "center"); }
+        else if (fx === "fly") { api.draw.triangle(x - 16, y + 4, x - 3, y - 7, x - 3, y + 10, 0xffffff, 0.85); api.draw.triangle(x + 16, y + 4, x + 3, y - 7, x + 3, y + 10, 0xffffff, 0.85); api.draw.circle(x, y, 14, base); api.draw.text(x, y - 26, "!!", 15, 0xffe9b0, "center"); }
+        else if (fx === "stone") { api.draw.circle(x, y, 15, 0x8a8f99); api.draw.line(x - 6, y - 8, x - 2, y + 6, 0x55585f, 2); api.draw.line(x + 4, y - 6, x + 7, y + 8, 0x55585f, 2); }
+        else if (fx === "famous") { api.draw.circle(x, y, 23, Math.floor(t * 6) % 2 ? 0xff3b3b : 0x3b6bff, 0.4); api.draw.circle(x, y, 15, base); }
+        else if (fx === "debt") { api.draw.circle(x, y, 15, base); api.draw.text(x, y - 30, "-1 wish", 14, 0xff6b6b, "center"); }
+        else if (fx === "chase") { api.draw.circle(x, y, 15, base); var mx = x + Math.cos(t * 4) * 36, my = y + Math.sin(t * 4) * 36; api.draw.triangle(mx - 8, my + 8, mx + 8, my + 8, mx, my - 8, 0xff3b3b); }
+        else if (fx === "grow") { var s = Math.min(130, 24 + t * 36); api.draw.rect(x - s / 2, y - s + 10, s, s, 0x6b4f3a, 0.55); api.draw.circle(x, y, 15, base); }
+        else if (fx === "heart") { api.draw.circle(x, y, 15, base); var hx = x + Math.min(70, t * 44); api.draw.circle(hx - 4, y - 30, 5, 0xff4d6d); api.draw.circle(hx + 4, y - 30, 5, 0xff4d6d); api.draw.triangle(hx - 8, y - 28, hx + 8, y - 28, hx, y - 18, 0xff4d6d); }
+        else api.draw.circle(x, y, 15, base);
+      }
+      api.draw.gradientRect(0, 0, 800, 600, 0x1a0f2e, 0x0c0716);
+      var gx = 690, gy = 124;
+      api.draw.circle(gx, gy + 66, 50, 0x7b3ff2, 0.16); api.draw.circle(gx, gy, 42, 0x9d5cff, 0.92); api.draw.circle(gx, gy + 36, 30, 0x7b3ff2, 0.85);
+      api.draw.circle(gx - 14, gy - 6, 7, 0xfff2b0); api.draw.circle(gx + 14, gy - 6, 7, 0xfff2b0); api.draw.circle(gx - 14, gy - 6, 3, 0x1a0f2e); api.draw.circle(gx + 14, gy - 6, 3, 0x1a0f2e);
+      api.draw.text(gx, gy - 58, "the genie", 13, 0xc9a9ff, "center");
+      var ents = api.entities(), myw = null;
+      for (var i = 0; i < ents.length; i++) { var e = ents[i]; var d; try { d = JSON.parse(e.data); } catch (z) { d = {}; } if (e.kind === "ego") { var wd = WISHES[d.wish] || { w: "something" }; api.draw.circle(e.x, e.y, 22, 0xffcf6b, 0.22); api.draw.circle(e.x, e.y, 15, 0xffd97a); api.draw.circle(e.x - 4, e.y - 4, 5, 0xfff4cf, 0.9); api.draw.text(e.x, e.y - 34, "I wish for " + wd.w, 13, 0xffe9b0, "center"); } }
+      for (var j = 0; j < ents.length; j++) { var e2 = ents[j]; if (e2.kind !== "egw") continue; var d2; try { d2 = JSON.parse(e2.data); } catch (z) { d2 = {}; } var mine = !!me && d2.pid === me; if (mine) myw = d2; if (d2.curse < 0) { api.draw.circle(e2.x, e2.y, 15, mine ? 0x6ef0a6 : 0x8aa0ff); api.draw.strokeCircle(e2.x, e2.y, 15, 0x0c0716, 3); api.draw.circle(e2.x - 5, e2.y - 3, 2.5, 0x102030); api.draw.circle(e2.x + 5, e2.y - 3, 2.5, 0x102030); } else { cursed(e2.x, e2.y, (WISHES[d2.curse] || {}).fx, mine); } }
+      if (myw && myw.curse >= 0) { var ws = WISHES[myw.curse]; api.draw.rect(70, 248, 660, 104, 0x000000, 0.55); api.draw.text(400, 276, "I wish for " + ws.w + "...", 18, 0xffe9b0, "center"); api.draw.text(400, 318, ws.t, 23, 0xff6b6b, "center"); }
+      else api.draw.text(400, 566, "walk into a wish - if you dare", 15, 0xc9a9ff, "center");
+      api.draw.text(20, 16, "Wishes survived: " + (myw ? (myw.score || 0) : 0), 16, 0xffffff, "left");
+      api.draw.text(20, 40, "Evil Genie", 13, 0x9d5cff, "left");
+    }
+  };
+})`;
+
 export const GENERATED_GAMES: Record<string, GeneratedEntry> = {
   dodge: {
     id: "dodge",
@@ -284,6 +354,15 @@ export const GENERATED_GAMES: Record<string, GeneratedEntry> = {
     summary: ["Rotate + thrust", "Shoot the rocks", "Rocks split when hit", "Screen wraps"],
     kinds: ["aship", "abul", "arock"],
     code: ASTEROIDS,
+  },
+  evilgenie: {
+    id: "evilgenie",
+    gameId: "9000105",
+    name: "Evil Genie",
+    prompt: "an evil genie game where you make a wish and the genie twists it into something terrible",
+    summary: ["Walk into a wish", "The genie grants it — twisted", "Survive the curse", "Be careful what you wish for"],
+    kinds: ["egw", "ego"],
+    code: EVILGENIE,
   },
 };
 

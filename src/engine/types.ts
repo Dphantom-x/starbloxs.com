@@ -48,6 +48,9 @@ export type DrawApi = {
   strokeCircle(x: number, y: number, r: number, color: number, width?: number, alpha?: number): void;
   line(x1: number, y1: number, x2: number, y2: number, color: number, width?: number, alpha?: number): void;
   gradientRect(x: number, y: number, w: number, h: number, top: number, bottom: number, alpha?: number): void;
+  // on-canvas text (pooled). align positions relative to (x,y): left=top-left,
+  // center=centered on the point, right=top-right.
+  text(x: number, y: number, str: string, size?: number, color?: number, align?: "left" | "center" | "right"): void;
   // transform stack (for rotated/scaled sprites like a tilting bird)
   save(): void;
   restore(): void;
