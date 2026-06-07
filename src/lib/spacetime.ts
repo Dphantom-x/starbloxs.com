@@ -21,6 +21,10 @@ let currentGameId: bigint | null = null;
 // placeholder DB name) from being overwritten by the SDK's generic WS error.
 let connectError: string | null = null;
 let configErrorSticky = false;
+// A token saved while pointed at a different backend (prod vs. local share one
+// localStorage key) is rejected on connect. We clear it and reconnect once with a
+// fresh identity, so switching backends self-heals instead of bricking.
+let triedFreshIdentity = false;
 export function getConnectError(): string | null {
   return connectError;
 }
@@ -125,6 +129,19 @@ export function connect(): DbConnection {
     })
     .onConnectError((_ctx, err) => {
       console.error("[stdb] connect error:", err);
+      // A stale identity token (e.g. saved on prod, now connecting to local) gets
+      // rejected here. Drop it and reconnect once with a fresh anonymous identity.
+      if (savedToken && !triedFreshIdentity) {
+        triedFreshIdentity = true;
+        try {
+          window.localStorage.removeItem(TOKEN_KEY);
+        } catch {
+          /* storage disabled — non-fatal */
+        }
+        conn = null;
+        connect();
+        return;
+      }
       if (!configErrorSticky) {
         connectError =
           `Couldn't reach the SpacetimeDB server at ${URI} (database "${DB}"). ` +

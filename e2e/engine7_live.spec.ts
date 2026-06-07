@@ -174,6 +174,8 @@ test("engine live-edit: 'manhunt' flips the running Tank to hunter/runner for ev
   await testInfo.attach("manhunt-A", { path: testInfo.outputPath("manhunt-A.png"), contentType: "image/png" });
   await testInfo.attach("manhunt-B", { path: testInfo.outputPath("manhunt-B.png"), contentType: "image/png" });
 
+  // clean up the test fixture so it doesn't accumulate in the local DB
+  await a.evaluate((id) => (window as unknown as W).__APP__.callReducer("deleteGame", { gameId: BigInt(id) }), gid);
   expect(errsA).toEqual([]);
   expect(errsB).toEqual([]);
   await ctxA.close();

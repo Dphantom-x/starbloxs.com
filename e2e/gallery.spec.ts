@@ -105,6 +105,29 @@ test("generated 'asteroids' compiles from a string and plays", async ({ page }, 
   expect(errs).toEqual([]);
 });
 
+test("the /g/:id play route mounts a generated game and it runs", async ({ page }, testInfo) => {
+  // The cards on the home grid link here; this is the real play surface (uses the
+  // app's __APP__ surface, not the test harness).
+  const errs = watch(page);
+  await page.goto("/g/dodge");
+  await page.waitForFunction(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    () => (window as any).__APP__?.connected() === true,
+    null,
+    { timeout: 20_000 }
+  );
+  await page.locator('[data-testid="game-canvas"]').click();
+  // the host compiles the registry code, runs it, and commits the player entity
+  await page.waitForFunction(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    () => (window as any).__APP__.getEntities().some((e: any) => e.kind === "ddp"),
+    null,
+    { timeout: 15_000 }
+  );
+  await page.screenshot({ path: testInfo.outputPath("g-route.png") });
+  expect(errs).toEqual([]);
+});
+
 test("generated 'evilgenie' compiles from a string and plays", async ({ page }, testInfo) => {
   const errs = watch(page);
   await boot(page, "evilgenie");

@@ -1047,8 +1047,26 @@ export const onDisconnect = spacetimedb.clientDisconnected(ctx => {
   if (ctx.db.player.identity.find(me)) {
     ctx.db.player.identity.delete(me);
   }
-  if (ctx.db.engine_input.identity.find(me)) {
+  // Remember which engine game they were in, then drop their input row.
+  const myInput = ctx.db.engine_input.identity.find(me);
+  const leftGame = myInput ? myInput.game_id : null;
+  if (myInput) {
     ctx.db.engine_input.identity.delete(me);
+  }
+  // If that engine game is now empty, reset its live config to default — so a
+  // game flipped mid-match (e.g. to "manhunt") doesn't stay stuck in that mode
+  // the next time it's played. (New games get fresh ids; this covers reused ones.)
+  if (leftGame != null) {
+    let stillPlaying = false;
+    for (const r of ctx.db.engine_input.iter()) {
+      if (r.game_id === leftGame) {
+        stillPlaying = true;
+        break;
+      }
+    }
+    if (!stillPlaying && ctx.db.engine_config.game_id.find(leftGame)) {
+      ctx.db.engine_config.game_id.delete(leftGame);
+    }
   }
 });
 

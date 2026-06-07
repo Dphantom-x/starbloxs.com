@@ -58,6 +58,8 @@ test("engine room: a created engine game runs and syncs to a 2nd player", async 
     { timeout: 15_000 }
   );
 
+  // clean up the test fixture so it doesn't accumulate in the local DB
+  await a.evaluate((id) => (window as unknown as W).__APP__.callReducer("deleteGame", { gameId: BigInt(id) }), gid);
   await ctxA.close();
   await ctxB.close();
 });

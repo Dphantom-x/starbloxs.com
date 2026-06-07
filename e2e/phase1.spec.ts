@@ -43,9 +43,11 @@ test("home menu shows seeded games and routes into a room", async ({
   // Create tile is present.
   await expect(page.getByTestId("create-tile")).toBeVisible();
 
-  // Clicking a card opens its lobby; Play routes into the live room.
-  const firstId = await cards.first().getAttribute("data-game-id");
-  await cards.first().click();
+  // Clicking a real (DB) game card opens its lobby; Play routes into the live
+  // room. (AI-gallery cards have no data-game-type and route to /g/<id> instead.)
+  const dbCard = page.locator('[data-testid="game-card"][data-game-type="tanks"]').first();
+  const firstId = await dbCard.getAttribute("data-game-id");
+  await dbCard.click();
   await page.waitForURL(`**/lobby/${firstId}`, { timeout: 10_000 });
   await page.getByTestId("lobby-play").click();
   await page.waitForURL(`**/game/${firstId}`, { timeout: 10_000 });

@@ -568,7 +568,7 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.03em; margin: 
 .score-val.lead { color: var(--ink); font-weight: 700; }
 .score-empty { font-size: 13px; color: var(--muted); padding: 4px 2px; }
 /* chat drawer — slides in over the right of the stage on demand */
-.chat-drawer { position: absolute; top: 12px; right: 12px; bottom: 12px; width: min(382px, calc(100% - 24px)); z-index: 8; display: flex; transform: translateX(calc(100% + 28px)); opacity: 0; visibility: hidden; transition: transform .32s var(--ease), opacity .2s var(--ease), visibility .32s; }
+.chat-drawer { position: absolute; top: 12px; right: 12px; bottom: 12px; width: min(382px, calc(100% - 24px)); z-index: 12; display: flex; transform: translateX(calc(100% + 28px)); opacity: 0; visibility: hidden; transition: transform .32s var(--ease), opacity .2s var(--ease), visibility .32s; }
 .chat-drawer.open { transform: none; opacity: 1; visibility: visible; }
 .chat-drawer .chat { width: 100%; height: 100%; box-shadow: var(--sh-4); }
 .chat-drawer .chat-body { max-height: none; flex: 1; min-height: 60px; }
@@ -615,8 +615,10 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.03em; margin: 
 .room.is-chatting .touch-controls { display: none; }
 
 /* flappy game-over card */
-.gameover-overlay { position: absolute; inset: 0; z-index: 9; display: grid; place-items: center; background: rgba(10,12,16,.5); backdrop-filter: blur(2px); padding: 16px; }
-.gameover-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--sh-4); padding: 24px 26px; width: min(300px, 88%); text-align: center; display: flex; flex-direction: column; gap: 16px; }
+/* Purely informational — never blocks clicks/typing (e.g. the Edit-with-AI panel
+   while dead). Space-to-restart is a key event, unaffected by pointer-events. */
+.gameover-overlay { position: absolute; inset: 0; z-index: 9; display: grid; place-items: center; background: rgba(10,12,16,.5); backdrop-filter: blur(2px); padding: 16px; pointer-events: none; }
+.gameover-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--sh-4); padding: 24px 26px; width: min(300px, 88%); text-align: center; display: flex; flex-direction: column; gap: 16px; pointer-events: auto; }
 .go-title { font-size: 24px; font-weight: 680; letter-spacing: -0.03em; color: var(--ink); }
 .go-stats { display: flex; gap: 10px; }
 .go-stat { flex: 1; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: var(--r-md); padding: 12px 8px; display: flex; flex-direction: column; gap: 4px; }
@@ -812,6 +814,20 @@ body.sb-theater .has-sidebar .app-main { padding-left: 0; }
 .gcard-players { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); margin-top: 4px; }
 .players-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted-2); flex: none; }
 .players-dot.on { background: var(--you-soft); box-shadow: 0 0 0 2px rgba(34,197,94,.22); animation: pulse 1.6s var(--ease) infinite; }
+
+/* AI-made gallery cards — the recorded gameplay loops as the thumbnail */
+.gcard-video { display: block; width: 100%; aspect-ratio: 16 / 11; object-fit: cover; border-radius: var(--r-md); background: #0e0f12; }
+.gcard-ai-tag {
+  position: absolute; top: 10px; left: 10px; z-index: 3;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; color: var(--ink);
+  background: rgba(255,255,255,.82); backdrop-filter: blur(6px);
+  border: 1px solid var(--chrome-edge); border-radius: 999px; padding: 3px 9px 3px 5px;
+  box-shadow: var(--sh-1);
+}
+/* generated-game play page */
+.ai-pill { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; color: #7b3ff2; background: rgba(123,63,242,.10); border: 1px solid rgba(123,63,242,.25); border-radius: 999px; padding: 2px 9px; }
+.gen-blurb { text-align: center; color: var(--muted); font-size: 13.5px; margin-top: 14px; }
 
 @media (max-width: 720px) {
   .hub-search { position: static; width: 100%; margin-bottom: 18px; }

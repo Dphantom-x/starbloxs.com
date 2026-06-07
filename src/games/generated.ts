@@ -120,10 +120,12 @@ const SNAKE = `(function () {
       this._acc += api.dt;
       if (this._acc >= STEP) {
         this._acc -= STEP;
+        // occupied cells across ALL snakes, so snakes collide with each other (not just themselves)
+        var occ = {};
+        for (var oi = 0; oi < order.length; oi++) { var osg = order[oi].data.segs; for (var oj = 0; oj < osg.length; oj++) occ[osg[oj][0] + "," + osg[oj][1]] = 1; }
         for (var k = 0; k < order.length; k++) {
           var sn = order[k], head = sn.data.segs[0], nh = [head[0] + sn.data.dir[0], head[1] + sn.data.dir[1]], idx = k;
-          var dead = nh[0] < 0 || nh[0] >= COLS || nh[1] < 0 || nh[1] >= ROWS;
-          if (!dead) for (var z = 0; z < sn.data.segs.length; z++) if (sn.data.segs[z][0] === nh[0] && sn.data.segs[z][1] === nh[1]) { dead = true; break; }
+          var dead = nh[0] < 0 || nh[0] >= COLS || nh[1] < 0 || nh[1] >= ROWS || occ[nh[0] + "," + nh[1]] === 1;
           if (dead) { var rx = 4 + idx * 5, ry = 6 + idx * 3; sn.data.segs = [[rx, ry], [rx - 1, ry], [rx - 2, ry]]; sn.data.dir = [1, 0]; sn.data.grow = 0; sn.data.score = 0; sn.x = px(rx); sn.y = px(ry); continue; }
           sn.data.segs.unshift(nh);
           if (food && nh[0] === food.data.cx && nh[1] === food.data.cy) { sn.data.grow += 3; sn.data.score = (sn.data.score || 0) + 1; food = null; }

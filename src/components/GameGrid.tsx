@@ -11,6 +11,7 @@ import { useStdb } from "./StdbProvider";
 import { Icon, Marble, GameThumb, Page, Wordmark, Avatar } from "./ui";
 import { genreOf } from "@/lib/rules";
 import { FRIENDS } from "@/lib/friends";
+import { GENERATED_LIST, type GeneratedEntry } from "@/games/generated";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ownerHex(g: any): string | null {
@@ -21,6 +22,13 @@ function ownerHex(g: any): string | null {
 
 // Official/seeded titles get featured in the "Sponsored" shelf.
 const OFFICIAL_NAMES = new Set(["Tank Trouble", "Flappy Arena"]);
+
+// Real recorded gameplay used as the card image per genre, so the thumbnail
+// reflects how the game actually plays (not an abstract mock).
+const GENRE_VIDEO: Record<string, string> = {
+  tanks: "/tank-verification.webm",
+  flappy: "/flappy-verification.webm",
+};
 
 function FriendsRow() {
   const online = FRIENDS.filter((f) => f.status === "in" || f.status === "online").length;
@@ -99,7 +107,19 @@ function GameCard({
       }}
     >
       <div className="gcard-thumb">
-        <GameThumb type={game.type} />
+        {GENRE_VIDEO[genreOf(game.type)] ? (
+          // eslint-disable-next-line jsx-a11y/media-has-caption
+          <video
+            className="gcard-video"
+            src={GENRE_VIDEO[genreOf(game.type)]}
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        ) : (
+          <GameThumb type={game.type} />
+        )}
         <div className="gcard-play">
           <span className="play-fab">
             <Icon name="play" size={20} />
@@ -192,6 +212,59 @@ function Shelf({
   );
 }
 
+// A gallery game made by the AI — its recorded gameplay loops as the thumbnail.
+function GeneratedCard({
+  entry,
+  onPlay,
+}: {
+  entry: GeneratedEntry;
+  onPlay: (id: string) => void;
+}) {
+  return (
+    <div
+      className="gcard gcard-gen"
+      data-testid="game-card"
+      data-game-id={entry.id}
+      role="button"
+      tabIndex={0}
+      onClick={() => onPlay(entry.id)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onPlay(entry.id);
+        }
+      }}
+    >
+      <div className="gcard-thumb">
+        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+        <video
+          className="gcard-video"
+          src={`/gallery/${entry.id}.webm`}
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
+        <span className="gcard-ai-tag">
+          <Marble size={13} /> AI-made
+        </span>
+        <div className="gcard-play">
+          <span className="play-fab">
+            <Icon name="play" size={20} />
+          </span>
+        </div>
+      </div>
+      <div className="gcard-body">
+        <h3 className="gcard-name">{entry.name}</h3>
+        <div className="gcard-players">
+          <span className="players-dot on" />
+          {entry.summary[1] ?? entry.summary[0]}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function GameGrid() {
   const { connected, mod } = useStdb();
   const router = useRouter();
@@ -202,7 +275,11 @@ export default function GameGrid() {
   const myId = mod ? mod.getIdentityHex() : null;
 
   const games: CardGame[] = mod
-    ? mod.getGamesRaw().map((g) => {
+    ? mod
+        .getGamesRaw()
+        // Hide leftover automated-test fixtures (named "E2E …") from the hub.
+        .filter((g) => !String(g.name).startsWith("E2E "))
+        .map((g) => {
         const id = g.gameId.toString();
         return {
           id,
@@ -222,6 +299,9 @@ export default function GameGrid() {
   const yours = visible.filter((g) => g.mine);
   const recommended = visible.filter((g) => !g.mine && !OFFICIAL_NAMES.has(g.name));
   const sponsored = visible.filter((g) => !g.mine && OFFICIAL_NAMES.has(g.name));
+  const genGames = GENERATED_LIST.filter(
+    (e) => q.trim() === "" || e.name.toLowerCase().includes(q.toLowerCase())
+  );
 
   const open = (g: CardGame) => router.push(`/lobby/${g.id}`);
   const onDelete = (g: CardGame) => mod?.deleteGame(g.id);
@@ -284,10 +364,24 @@ export default function GameGrid() {
       </div>
 
       <div className="fade-up" style={{ animationDelay: ".1s" }} data-testid="game-grid">
+        {genGames.length > 0 && (
+          <section className="gsection">
+            <div className="shelf-head">
+              <div className="shelf-title">
+                Made by the AI <span className="shelf-n">({genGames.length})</span>
+              </div>
+            </div>
+            <div className="grid">
+              {genGames.map((e) => (
+                <GeneratedCard key={e.id} entry={e} onPlay={(id) => router.push(`/g/${id}`)} />
+              ))}
+            </div>
+          </section>
+        )}
         <Shelf title="My recent" games={yours} onOpen={open} onRemix={onRemix} onDelete={onDelete} remixingId={remixingId} />
         <Shelf title="Recommended for you" games={recommended} onOpen={open} onRemix={onRemix} onDelete={onDelete} remixingId={remixingId} />
         <Shelf title="Sponsored" games={sponsored} onOpen={open} onRemix={onRemix} onDelete={onDelete} remixingId={remixingId} />
-        {visible.length === 0 && (
+        {visible.length === 0 && genGames.length === 0 && (
           <div className="empty pop-in">
             <Marble size={44} />
             <p>
