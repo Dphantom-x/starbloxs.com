@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useStdb } from "./StdbProvider";
 import { Icon, Marble, GameThumb, Page, Wordmark, Avatar } from "./ui";
 import { genreOf } from "@/lib/rules";
+import { FRIENDS } from "@/lib/friends";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ownerHex(g: any): string | null {
@@ -17,23 +18,6 @@ function ownerHex(g: any): string | null {
     ? g.owner.toHexString()
     : null;
 }
-
-// Friends "crew" for the session strip (visual mock — no backend).
-const FRIENDS: {
-  name: string;
-  c1: string;
-  c2: string;
-  status: "in" | "online" | "idle";
-  game?: string;
-}[] = [
-  { name: "Dawn Keebals", c1: "#34d399", c2: "#059669", status: "in", game: "Tank Trouble" },
-  { name: "lou natic", c1: "#60a5fa", c2: "#2563eb", status: "in", game: "Flappy Arena" },
-  { name: "Jenny Tull", c1: "#fb923c", c2: "#ea580c", status: "online" },
-  { name: "Willie Stroker", c1: "#c084fc", c2: "#7c3aed", status: "online" },
-  { name: "al beback", c1: "#f472b6", c2: "#db2777", status: "idle" },
-  { name: "Ben Dover", c1: "#22d3ee", c2: "#0891b2", status: "in", game: "Bouncy Blitz" },
-  { name: "justin case", c1: "#facc15", c2: "#ca8a04", status: "idle" },
-];
 
 // Official/seeded titles get featured in the "Sponsored" shelf.
 const OFFICIAL_NAMES = new Set(["Tank Trouble", "Flappy Arena"]);
@@ -60,7 +44,7 @@ function FriendsRow() {
               : "Away";
           return (
             <button className="friend" key={f.name} title={f.name}>
-              <Avatar name={f.name} c1={f.c1} c2={f.c2} status={f.status} size={64} />
+              <Avatar name={f.name} pfp={f.pfp} c1={f.c1} c2={f.c2} status={f.status} size={64} />
               <div className="friend-name">{f.name}</div>
               <div className={"friend-sub" + (playing ? " playing" : "")}>{sub}</div>
             </button>

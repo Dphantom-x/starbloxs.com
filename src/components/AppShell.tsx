@@ -7,13 +7,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useStdb } from "./StdbProvider";
-import { Icon, Conn, Wordmark, Toasts, type IconName, type Toast } from "./ui";
+import { Icon, Conn, Wordmark, InstagramLink, Toasts, type IconName, type Toast } from "./ui";
 import Sidebar from "./Sidebar";
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const { connected, error } = useStdb();
   const pathname = usePathname();
   const onGames = pathname === "/";
+  // The landing page is a full-width marketing page — no left rail there.
+  const isLanding = pathname === "/landing";
 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const tid = useRef(0);
@@ -31,8 +33,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="app app-sheen has-sidebar">
-      <Sidebar onToast={toast} />
+    <div className={"app app-sheen" + (isLanding ? "" : " has-sidebar")}>
+      {!isLanding && <Sidebar onToast={toast} />}
       <div className="app-main">
         <header className="topbar">
           <Link href="/landing" className="brand" aria-label="Starblox home">
@@ -45,6 +47,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             >
               Browse games
             </Link>
+            <InstagramLink />
             <Conn connected={connected} error={error} />
             <span className="topbar-div" />
             <button

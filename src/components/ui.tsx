@@ -164,19 +164,51 @@ export function Wordmark({ size = 20, className = "" }: { size?: number; classNa
   );
 }
 
-// Colored avatar disc with initials + an optional status ring.
+// Instagram link with the classic rainbow gradient (top bar).
+export function InstagramLink() {
+  return (
+    <a
+      className="ig-link"
+      href="https://www.instagram.com/ig.aldo_o/"
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Follow @ig.aldo_o on Instagram"
+      aria-label="Instagram"
+    >
+      <svg width="22" height="22" viewBox="0 0 24 24">
+        <defs>
+          <radialGradient id="igGrad" cx="30%" cy="107%" r="135%">
+            <stop offset="0%" stopColor="#fdf497" />
+            <stop offset="5%" stopColor="#fdf497" />
+            <stop offset="45%" stopColor="#fd5949" />
+            <stop offset="60%" stopColor="#d6249f" />
+            <stop offset="90%" stopColor="#285AEB" />
+          </radialGradient>
+        </defs>
+        <rect x="2" y="2" width="20" height="20" rx="6" fill="url(#igGrad)" />
+        <rect x="6.3" y="6.3" width="11.4" height="11.4" rx="3.6" fill="none" stroke="#fff" strokeWidth="1.6" />
+        <circle cx="12" cy="12" r="3.1" fill="none" stroke="#fff" strokeWidth="1.6" />
+        <circle cx="16.3" cy="7.7" r="1.05" fill="#fff" />
+      </svg>
+    </a>
+  );
+}
+
+// Colored avatar disc with initials (or a profile photo) + an optional status ring.
 export function Avatar({
   name,
   c1,
   c2,
   status,
   size = 38,
+  pfp,
 }: {
   name: string;
   c1: string;
   c2: string;
   status?: "in" | "online" | "idle" | "offline";
   size?: number;
+  pfp?: string;
 }) {
   const initials = name
     .split(/\s+/)
@@ -192,12 +224,17 @@ export function Avatar({
         : "var(--muted-2)";
   return (
     <span className="avatar" style={{ width: size, height: size }}>
-      <span
-        className="avatar-disc"
-        style={{ background: `linear-gradient(160deg, ${c1}, ${c2})`, fontSize: size * 0.4 }}
-      >
-        {initials}
-      </span>
+      {pfp ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="avatar-img" src={pfp} alt={name} draggable={false} />
+      ) : (
+        <span
+          className="avatar-disc"
+          style={{ background: `linear-gradient(160deg, ${c1}, ${c2})`, fontSize: size * 0.4 }}
+        >
+          {initials}
+        </span>
+      )}
       {status && <span className="avatar-status" style={{ background: statusColor }} />}
     </span>
   );

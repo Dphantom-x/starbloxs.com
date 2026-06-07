@@ -16,6 +16,10 @@
 /playwright-report
 /playwright/.cache
 
+# local tooling / scratch
+/.claude
+/tmp_design
+
 # next.js
 /.next/
 /out/
