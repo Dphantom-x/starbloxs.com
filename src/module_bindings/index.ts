@@ -35,6 +35,7 @@ import {
 
 // Import all reducer arg schemas
 import ApplyRulesPatchReducer from "./apply_rules_patch_reducer";
+import CommitEntitiesReducer from "./commit_entities_reducer";
 import CreateGameReducer from "./create_game_reducer";
 import DebugPlaceReducer from "./debug_place_reducer";
 import DeleteGameReducer from "./delete_game_reducer";
@@ -42,11 +43,15 @@ import JoinGameReducer from "./join_game_reducer";
 import RemixGameReducer from "./remix_game_reducer";
 import ResetGameReducer from "./reset_game_reducer";
 import RespawnReducer from "./respawn_reducer";
+import SetEngineConfigReducer from "./set_engine_config_reducer";
+import SetEngineInputReducer from "./set_engine_input_reducer";
 import SetInputReducer from "./set_input_reducer";
 
 // Import all procedure arg schemas
 
 // Import all table schema definitions
+import EngineConfigRow from "./engine_config_table";
+import EngineInputRow from "./engine_input_table";
 import EntityRow from "./entity_table";
 import GameRow from "./game_table";
 import GameRulesRow from "./game_rules_table";
@@ -57,6 +62,31 @@ import PlayerRow from "./player_table";
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
+  engine_config: __table({
+    name: 'engine_config',
+    indexes: [
+      { accessor: 'game_id', name: 'engine_config_game_id_idx_btree', algorithm: 'btree', columns: [
+        'gameId',
+      ] },
+    ],
+    constraints: [
+      { name: 'engine_config_game_id_key', constraint: 'unique', columns: ['gameId'] },
+    ],
+  }, EngineConfigRow),
+  engine_input: __table({
+    name: 'engine_input',
+    indexes: [
+      { accessor: 'game_id', name: 'engine_input_game_id_idx_btree', algorithm: 'btree', columns: [
+        'gameId',
+      ] },
+      { accessor: 'identity', name: 'engine_input_identity_idx_btree', algorithm: 'btree', columns: [
+        'identity',
+      ] },
+    ],
+    constraints: [
+      { name: 'engine_input_identity_key', constraint: 'unique', columns: ['identity'] },
+    ],
+  }, EngineInputRow),
   entity: __table({
     name: 'entity',
     indexes: [
@@ -123,6 +153,7 @@ const tablesSchema = __schema({
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
   __reducerSchema("apply_rules_patch", ApplyRulesPatchReducer),
+  __reducerSchema("commit_entities", CommitEntitiesReducer),
   __reducerSchema("create_game", CreateGameReducer),
   __reducerSchema("debug_place", DebugPlaceReducer),
   __reducerSchema("delete_game", DeleteGameReducer),
@@ -130,6 +161,8 @@ const reducersSchema = __reducers(
   __reducerSchema("remix_game", RemixGameReducer),
   __reducerSchema("reset_game", ResetGameReducer),
   __reducerSchema("respawn", RespawnReducer),
+  __reducerSchema("set_engine_config", SetEngineConfigReducer),
+  __reducerSchema("set_engine_input", SetEngineInputReducer),
   __reducerSchema("set_input", SetInputReducer),
 );
 

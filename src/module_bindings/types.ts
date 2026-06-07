@@ -10,6 +10,19 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+export const EngineConfig = __t.object("EngineConfig", {
+  gameId: __t.u64(),
+  config: __t.string(),
+});
+export type EngineConfig = __Infer<typeof EngineConfig>;
+
+export const EngineInput = __t.object("EngineInput", {
+  identity: __t.identity(),
+  gameId: __t.u64(),
+  input: __t.string(),
+});
+export type EngineInput = __Infer<typeof EngineInput>;
+
 export const Entity = __t.object("Entity", {
   entityId: __t.u64(),
   gameId: __t.u64(),

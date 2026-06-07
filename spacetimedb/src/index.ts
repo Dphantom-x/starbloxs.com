@@ -107,6 +107,29 @@ const entity = table(
   }
 );
 
+// Option B engine: per-player input for engine games. Clients write their own
+// row; the host reads everyone's. Kept SEPARATE from entity so host commits
+// never clobber inputs (and vice-versa).
+const engine_input = table(
+  { name: 'engine_input', public: true },
+  {
+    identity: t.identity().primaryKey(),
+    game_id: t.u64().index('btree'),
+    input: t.string(), // JSON { up, down, left, right, fire }
+  }
+);
+
+// Option B engine: per-game LIVE config (manhunt mode + tunable knobs). An edit
+// writes this row; the host reads it each tick → applied for every player with no
+// redeploy. This is what makes DEMO 2's live-remix work on engine games.
+const engine_config = table(
+  { name: 'engine_config', public: true },
+  {
+    game_id: t.u64().primaryKey(),
+    config: t.string(), // JSON
+  }
+);
+
 // Game-loop schedule table (drives the tick reducer).
 const tick_schedule = table(
   {
@@ -125,6 +148,8 @@ const spacetimedb = schema({
   map_features,
   player,
   entity,
+  engine_input,
+  engine_config,
   tick_schedule,
 });
 export default spacetimedb;
@@ -471,6 +496,10 @@ export const join_game = spacetimedb.reducer(
         alive: true,
       });
     }
+    // Engine games (Option B) manage all entities host-side — no template spawn.
+    const gg = ctx.db.game.game_id.find(game_id);
+    if (gg && (gg.game_type === 'eflappy' || gg.game_type === 'etank')) return;
+
     // Spawn the player's tank/bird if they don't already have one here.
     let has = false;
     for (const e of ctx.db.entity.game_id.filter(game_id)) {
@@ -537,6 +566,117 @@ export const set_input = spacetimedb.reducer(
         ctx.db.entity.entity_id.update({ ...e, data: JSON.stringify(data) });
         break;
       }
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Option B engine: host-authoritative entity writes. A "host" client runs the
+// game's tick (AI-written, client-side) and commits the whole entity set for
+// its game each frame. Reconciled by a stable host key (data.__key) so updates
+// happen in place (smooth sync). Engine games use their own game_ids; the
+// server `tick` only ever touches the fixed kinds tank/bird/shell/pipe, and
+// rows without a __key are never reconciled here — so the two never collide.
+// ---------------------------------------------------------------------------
+export const commit_entities = spacetimedb.reducer(
+  { game_id: t.u64(), entities: t.string() },
+  (ctx, { game_id, entities }) => {
+    let incoming: Array<{
+      key: string;
+      kind: string;
+      x: number;
+      y: number;
+      vx?: number;
+      vy?: number;
+      angle?: number;
+      data?: Record<string, unknown>;
+    }> = [];
+    try {
+      incoming = JSON.parse(entities);
+    } catch {
+      return;
+    }
+    if (!Array.isArray(incoming)) return;
+
+    // Index this game's existing engine rows by their stable host key.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existing = new Map<string, any>();
+    for (const e of ctx.db.entity.game_id.filter(game_id)) {
+      let k = '';
+      try {
+        k = ((JSON.parse(e.data) as { __key?: string }).__key) ?? '';
+      } catch {
+        k = '';
+      }
+      if (k) existing.set(k, e);
+    }
+
+    const seen = new Set<string>();
+    for (const inc of incoming) {
+      const key = String(inc.key ?? '');
+      if (!key) continue;
+      seen.add(key);
+      const data = JSON.stringify({ ...(inc.data ?? {}), __key: key });
+      const prev = existing.get(key);
+      if (prev) {
+        ctx.db.entity.entity_id.update({
+          ...prev,
+          owner: ctx.sender, // host owns engine entities → onDisconnect auto-cleans
+          kind: inc.kind,
+          x: inc.x,
+          y: inc.y,
+          vx: inc.vx ?? 0,
+          vy: inc.vy ?? 0,
+          angle: inc.angle ?? 0,
+          data,
+        });
+      } else {
+        ctx.db.entity.insert({
+          entity_id: 0n,
+          game_id,
+          kind: inc.kind,
+          owner: ctx.sender, // host owns engine entities → onDisconnect auto-cleans
+          x: inc.x,
+          y: inc.y,
+          vx: inc.vx ?? 0,
+          vy: inc.vy ?? 0,
+          angle: inc.angle ?? 0,
+          data,
+        });
+      }
+    }
+    // Drop engine rows the host no longer reports.
+    for (const [key, row] of existing) {
+      if (!seen.has(key)) ctx.db.entity.entity_id.delete(row.entity_id);
+    }
+  }
+);
+
+// Option B engine: a client publishes its own input for an engine game. The
+// host reads every player's row each tick and simulates accordingly.
+export const set_engine_input = spacetimedb.reducer(
+  { game_id: t.u64(), input: t.string() },
+  (ctx, { game_id, input }) => {
+    const me = ctx.sender;
+    const existing = ctx.db.engine_input.identity.find(me);
+    if (existing) {
+      ctx.db.engine_input.identity.update({ ...existing, game_id, input });
+    } else {
+      ctx.db.engine_input.insert({ identity: me, game_id, input });
+    }
+  }
+);
+
+// Option B engine: write a game's live config (the live-edit path). Any player
+// can edit; the host reads it next tick → instant for everyone, no redeploy.
+export const set_engine_config = spacetimedb.reducer(
+  { game_id: t.u64(), config: t.string() },
+  (ctx, { game_id, config }) => {
+    const existing = ctx.db.engine_config.game_id.find(game_id);
+    if (existing) {
+      ctx.db.engine_config.game_id.update({ ...existing, config });
+    } else {
+      ctx.db.engine_config.insert({ game_id, config });
     }
   }
 );
@@ -906,6 +1046,9 @@ export const onDisconnect = spacetimedb.clientDisconnected(ctx => {
   for (const id of toDelete) ctx.db.entity.entity_id.delete(id);
   if (ctx.db.player.identity.find(me)) {
     ctx.db.player.identity.delete(me);
+  }
+  if (ctx.db.engine_input.identity.find(me)) {
+    ctx.db.engine_input.identity.delete(me);
   }
 });
 

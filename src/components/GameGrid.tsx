@@ -1,14 +1,15 @@
 "use client";
 
-// Starblox home: hero + create tile, search/type filters, and procedural game
-// cards grouped into "Your games" / "Community". Cards open the lobby; the
-// per-card remix ("Make it mine") clones and jumps straight into the new room.
+// Starblox games hub: Roblox-style wordmark banner + search, a friends row,
+// and cardless game shelves (My recent / Recommended for you / Sponsored).
+// Cards open the lobby; the per-card remix ("Make it mine") clones and jumps
+// straight into the new room. SpacetimeDB wiring + all data-testids preserved.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useStdb } from "./StdbProvider";
-import { Icon, Marble, GameThumb, Page } from "./ui";
-import { rulesSummary } from "@/lib/rules";
+import { Icon, Marble, GameThumb, Page, Wordmark, Avatar } from "./ui";
+import { genreOf } from "@/lib/rules";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ownerHex(g: any): string | null {
@@ -17,20 +18,62 @@ function ownerHex(g: any): string | null {
     : null;
 }
 
-function CreateTile() {
+// Friends "crew" for the session strip (visual mock — no backend).
+const FRIENDS: {
+  name: string;
+  c1: string;
+  c2: string;
+  status: "in" | "online" | "idle";
+  game?: string;
+}[] = [
+  { name: "Dawn Keebals", c1: "#34d399", c2: "#059669", status: "in", game: "Tank Trouble" },
+  { name: "lou natic", c1: "#60a5fa", c2: "#2563eb", status: "in", game: "Flappy Arena" },
+  { name: "Jenny Tull", c1: "#fb923c", c2: "#ea580c", status: "online" },
+  { name: "Willie Stroker", c1: "#c084fc", c2: "#7c3aed", status: "online" },
+  { name: "al beback", c1: "#f472b6", c2: "#db2777", status: "idle" },
+  { name: "Ben Dover", c1: "#22d3ee", c2: "#0891b2", status: "in", game: "Bouncy Blitz" },
+  { name: "justin case", c1: "#facc15", c2: "#ca8a04", status: "idle" },
+];
+
+// Official/seeded titles get featured in the "Sponsored" shelf.
+const OFFICIAL_NAMES = new Set(["Tank Trouble", "Flappy Arena"]);
+
+function FriendsRow() {
+  const online = FRIENDS.filter((f) => f.status === "in" || f.status === "online").length;
   return (
-    <Link href="/create" className="create-tile" data-testid="create-tile">
-      <div className="create-tile-mark">
-        <Marble size={40} />
+    <div className="frow fade-up" style={{ animationDelay: ".05s" }}>
+      <div className="shelf-head">
+        <div className="shelf-title">
+          Friends <span className="shelf-n">({FRIENDS.length})</span>
+        </div>
+        <button className="see-all">
+          {online} online <Icon name="arrow" size={14} />
+        </button>
       </div>
-      <div className="create-tile-plus">
-        <Icon name="plus" size={18} />
+      <div className="frow-rail">
+        {FRIENDS.map((f) => {
+          const playing = f.status === "in" && f.game;
+          const sub = playing
+            ? f.game
+            : f.status === "online"
+              ? "Online"
+              : "Away";
+          return (
+            <button className="friend" key={f.name} title={f.name}>
+              <Avatar name={f.name} c1={f.c1} c2={f.c2} status={f.status} size={64} />
+              <div className="friend-name">{f.name}</div>
+              <div className={"friend-sub" + (playing ? " playing" : "")}>{sub}</div>
+            </button>
+          );
+        })}
+        <button className="friend friend-invite" title="Invite a friend">
+          <div className="invite-disc">
+            <Icon name="plus" size={24} />
+          </div>
+          <div className="friend-name">Invite</div>
+        </button>
       </div>
-      <div>
-        <div className="create-tile-title">Create with AI</div>
-        <div className="create-tile-sub">describe a game · it gets built</div>
-      </div>
-    </Link>
+    </div>
   );
 }
 
@@ -40,7 +83,6 @@ type CardGame = {
   name: string;
   mine: boolean;
   playing: number;
-  rules: string[];
 };
 
 function GameCard({
@@ -56,10 +98,9 @@ function GameCard({
   onDelete: (g: CardGame) => void;
   remixing: boolean;
 }) {
-  const typeLabel = game.type === "flappy" ? "FLAPPY" : "TANKS";
   return (
     <div
-      className="gcard card"
+      className="gcard"
       data-testid="game-card"
       data-game-type={game.type}
       data-game-id={game.id}
@@ -80,12 +121,6 @@ function GameCard({
             <Icon name="play" size={20} />
           </span>
         </div>
-        {game.playing > 0 && (
-          <span className="live-pill">
-            <span className="live-dot" />
-            {game.playing} playing
-          </span>
-        )}
         {game.mine && (
           <button
             className="gcard-del"
@@ -124,23 +159,17 @@ function GameCard({
         </button>
       </div>
       <div className="gcard-body">
-        <div className="gcard-head">
-          <h3 className="gcard-name">{game.name}</h3>
-          <span className="type-tag">{typeLabel}</span>
-        </div>
-        <div className="gcard-rules">
-          {game.rules.map((r, i) => (
-            <span className="mini-chip" key={i}>
-              {r}
-            </span>
-          ))}
+        <h3 className="gcard-name">{game.name}</h3>
+        <div className="gcard-players">
+          <span className={"players-dot" + (game.playing > 0 ? " on" : "")} />
+          {game.playing > 0 ? `${game.playing} playing` : "no one playing"}
         </div>
       </div>
     </div>
   );
 }
 
-function Section({
+function Shelf({
   title,
   games,
   onOpen,
@@ -158,9 +187,10 @@ function Section({
   if (games.length === 0) return null;
   return (
     <section className="gsection">
-      <div className="gsection-head">
-        <h2 className="gsection-title">{title}</h2>
-        <span className="gsection-count mono">{games.length}</span>
+      <div className="shelf-head">
+        <div className="shelf-title">
+          {title} <span className="shelf-n">({games.length})</span>
+        </div>
       </div>
       <div className="grid">
         {games.map((g) => (
@@ -186,10 +216,6 @@ export default function GameGrid() {
   const [filter, setFilter] = useState<"all" | "tanks" | "flappy">("all");
 
   const myId = mod ? mod.getIdentityHex() : null;
-  const rulesById = new Map<string, unknown>();
-  if (mod) {
-    for (const r of mod.getAllRulesRaw()) rulesById.set(r.gameId.toString(), r);
-  }
 
   const games: CardGame[] = mod
     ? mod.getGamesRaw().map((g) => {
@@ -200,18 +226,18 @@ export default function GameGrid() {
           name: g.name,
           mine: !!myId && ownerHex(g) === myId,
           playing: mod.getPlayersForRaw(id).length,
-          rules: rulesSummary(g.gameType, rulesById.get(id), 3),
         };
       })
     : [];
 
   const match = (g: CardGame) =>
-    (filter === "all" || g.type === filter) &&
+    (filter === "all" || genreOf(g.type) === filter) &&
     (q.trim() === "" || g.name.toLowerCase().includes(q.toLowerCase()));
 
   const visible = games.filter(match);
   const yours = visible.filter((g) => g.mine);
-  const community = visible.filter((g) => !g.mine);
+  const recommended = visible.filter((g) => !g.mine && !OFFICIAL_NAMES.has(g.name));
+  const sponsored = visible.filter((g) => !g.mine && OFFICIAL_NAMES.has(g.name));
 
   const open = (g: CardGame) => router.push(`/lobby/${g.id}`);
   const onDelete = (g: CardGame) => mod?.deleteGame(g.id);
@@ -231,70 +257,52 @@ export default function GameGrid() {
 
   return (
     <Page>
-      <div className="home-hero fade-up">
-        <div className="hero-copy">
-          <div className="eyebrow">
-            {connected ? "Connected" : "Connecting…"} · live multiplayer
-          </div>
-          <h1 className="hero-title">
-            Games, made and
-            <br />
-            remade by talking.
-          </h1>
-          <p className="hero-sub">
-            Pick something to play, spin up a new game by describing it, or remix
-            anything into your own.
-          </p>
-        </div>
-        <div className="hero-create">
-          <CreateTile />
-        </div>
-      </div>
-
-      <div className="home-toolbar fade-up" style={{ animationDelay: ".05s" }}>
-        <div className="search">
+      <div className="hub-banner fade-up">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="hub-banner-art" src="/logo.png" alt="" aria-hidden="true" />
+        <div className="hub-search">
           <Icon name="search" size={17} style={{ color: "var(--muted-2)" }} />
           <input
-            className="search-input"
+            className="hub-search-input"
             placeholder="Search games…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
         </div>
-        <div className="filters">
-          {filters.map(([v, l]) => (
-            <button
-              key={v}
-              className={"chip" + (filter === v ? " chip-on" : "")}
-              onClick={() => setFilter(v)}
-            >
-              {l}
-            </button>
-          ))}
+        <Wordmark size={20} className="hub-wordmark" />
+        <div className="hub-greeting">
+          <div className="hub-home">Home</div>
+          <p className="hub-welcome">
+            {connected ? "Welcome back, Maxy!" : "Connecting to the live server…"}
+          </p>
         </div>
       </div>
 
-      <div
-        className="fade-up"
-        style={{ animationDelay: ".1s" }}
-        data-testid="game-grid"
-      >
-        <Section
-          title="Your games"
-          games={yours}
-          onOpen={open}
-          onRemix={onRemix}
-          onDelete={onDelete}
-          remixingId={remixingId}
-        />
-        <Section
-          title="Community"
-          games={community}
-          onOpen={open}
-          onRemix={onRemix}
-          onDelete={onDelete}
-          remixingId={remixingId}
-        />
+      <FriendsRow />
+
+      <div className="hub-filters fade-up" style={{ animationDelay: ".08s" }}>
+        {filters.map(([v, l]) => (
+          <button
+            key={v}
+            className={"chip" + (filter === v ? " chip-on" : "")}
+            onClick={() => setFilter(v)}
+          >
+            {l}
+          </button>
+        ))}
+        <Link
+          href="/create"
+          className="btn btn-chrome create-pill"
+          data-testid="create-tile"
+        >
+          <Icon name="plus" size={15} /> Create
+        </Link>
+      </div>
+
+      <div className="fade-up" style={{ animationDelay: ".1s" }} data-testid="game-grid">
+        <Shelf title="My recent" games={yours} onOpen={open} onRemix={onRemix} onDelete={onDelete} remixingId={remixingId} />
+        <Shelf title="Recommended for you" games={recommended} onOpen={open} onRemix={onRemix} onDelete={onDelete} remixingId={remixingId} />
+        <Shelf title="Sponsored" games={sponsored} onOpen={open} onRemix={onRemix} onDelete={onDelete} remixingId={remixingId} />
         {visible.length === 0 && (
           <div className="empty pop-in">
             <Marble size={44} />

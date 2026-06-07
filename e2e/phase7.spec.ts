@@ -16,37 +16,40 @@ async function waitConnected(page: Page) {
   );
 }
 
-test("create a flappy game by talking", async ({ browser }) => {
+test("DEMO 1: create an engine game by talking → build → test → publish → room", async ({
+  browser,
+}, testInfo) => {
   const a = await (await browser.newContext()).newPage();
   await a.goto("/create");
   await waitConnected(a);
 
-  await a.fill(
-    '[data-testid="create-input"]',
-    "a multiplayer flappy bird, tall, 3 gaps, birds collide"
-  );
+  // Describe the game.
+  await a.fill('[data-testid="create-input"]', "make a multiplayer flappy bird with collision");
   await a.click('[data-testid="create-submit"]');
 
-  // The preview confirm step appears (derived from the real AI patch).
-  await a.waitForSelector('[data-testid="create-confirm"]', { timeout: 15_000 });
+  // The AI asks ONE clarifying question → we answer (the forgiving-collision branch).
+  await a.waitForSelector('[data-testid="clarify-input"]', { timeout: 15_000 });
+  await a.fill('[data-testid="clarify-input"]', "only kill me if I hit the side of a pipe");
+  await a.click('[data-testid="clarify-submit"]');
+
+  // The terminal flashes the real game-file code, the verification video plays,
+  // then Publish appears.
+  await expect(a.getByTestId("test-video")).toBeVisible({ timeout: 20_000 });
+  await a.waitForSelector('[data-testid="create-confirm"]', { timeout: 25_000 });
+  await a.screenshot({ path: testInfo.outputPath("create-flow.png") });
+  await testInfo.attach("create-flow", { path: testInfo.outputPath("create-flow.png"), contentType: "image/png" });
   await a.click('[data-testid="create-confirm"]');
 
+  // We land in the live engine room.
   await a.waitForURL(/\/game\/\d+$/, { timeout: 15_000 });
   const newId = a.url().match(/\/game\/(\d+)/)?.[1] as string;
   expect(newId).toBeTruthy();
+  await expect(a.getByTestId("game-room")).toBeVisible();
 
-  // The new game has the AI-chosen type + initial rules, live.
+  // It's a REAL engine Flappy — a bird spawns and runs on the pseudo-engine.
   await a.waitForFunction(
-    () => {
-      const r = (window as unknown as AppWindow).__APP__.getRules();
-      return (
-        r &&
-        r.gameType === "flappy" &&
-        r.gapsPerPipe === 3 &&
-        r.fieldHeight > 1 &&
-        r.birdCollision === true
-      );
-    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    () => (window as unknown as AppWindow).__APP__.getEntities().some((e: any) => e.kind === "fbird"),
     null,
     { timeout: 15_000 }
   );

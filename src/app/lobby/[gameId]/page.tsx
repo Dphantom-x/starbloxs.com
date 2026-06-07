@@ -10,7 +10,7 @@ import { useParams, useRouter } from "next/navigation";
 import QRCode from "react-qr-code";
 import { useStdb } from "@/components/StdbProvider";
 import { Icon, Marble, GameThumb, Page, BackLink } from "@/components/ui";
-import { rulesSummary, gameBlurb } from "@/lib/rules";
+import { rulesSummary, gameBlurb, genreOf } from "@/lib/rules";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ownerHex(g: any): string | null {
@@ -159,7 +159,7 @@ export default function Lobby() {
             <span className={"owner-tag " + (mine ? "owner-you" : "owner-player")}>
               {mine ? "Created by you" : "By a player"}
             </span>
-            <span className="type-tag">{type === "flappy" ? "FLAPPY" : "TANKS"}</span>
+            <span className="type-tag">{genreOf(type) === "flappy" ? "FLAPPY" : "TANKS"}</span>
           </div>
           <h1 className="lobby-name">{game.name}</h1>
           <p className="lobby-blurb">{gameBlurb(type)}</p>

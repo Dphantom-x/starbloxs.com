@@ -55,6 +55,8 @@
   /* map to the Geist fonts already loaded via next/font in layout.tsx */
   --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  /* characterful display face (Bricolage Grotesque), loaded via next/font in layout.tsx */
+  --font-display: var(--font-bricolage), var(--font-geist-sans), sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -86,6 +88,7 @@ body {
 
 /* ---- typography ---- */
 .wordmark {
+  font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: -0.045em;
   background: var(--silver-text);
@@ -104,7 +107,7 @@ body {
   text-transform: uppercase;
   color: var(--muted);
 }
-h1, h2, h3 { letter-spacing: -0.03em; margin: 0; font-weight: 600; }
+h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.03em; margin: 0; font-weight: 600; }
 
 /* ---- buttons ---- */
 .btn {
@@ -621,7 +624,8 @@ h1, h2, h3 { letter-spacing: -0.03em; margin: 0; font-weight: 600; }
 .go-stat-val { font-size: 26px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
 
 /* theater / fullscreen mode */
-body.sb-theater .topbar, body.sb-theater .conn-banner { display: none; }
+body.sb-theater .topbar, body.sb-theater .conn-banner, body.sb-theater .sidebar { display: none; }
+body.sb-theater .has-sidebar .app-main { padding-left: 0; }
 .room.is-theater .room-top, .room.is-theater .demo { display: none; }
 .room.is-theater .canvas-stage.room-stage { position: fixed; inset: 0; width: 100vw; height: 100vh; max-height: none; min-height: 0; border-radius: 0; border: none; z-index: 100; }
 .room.is-theater .canvas-host.game-fill { inset: 0; }
@@ -644,3 +648,185 @@ body.sb-theater .topbar, body.sb-theater .conn-banner { display: none; }
 .notfound p { color: var(--muted); font-size: 16px; margin: 6px 0 20px; max-width: 38ch; line-height: 1.5; }
 .nf-code { font-family: var(--font-mono); font-size: 13px; color: var(--muted-2); letter-spacing: .1em; }
 .nf-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+/* ============================================================
+   DESIGN REFRESH v2 — sidebar, logo/wordmark, hub banner,
+   friends row, cardless cards, avatars, landing
+   (ported from the Claude Design "hackathon3-1" bundle)
+   ============================================================ */
+
+/* display font on the prominent non-<h> titles */
+.hub-home, .shelf-title, .lp-title, .lp-showcase-title, .feat-title,
+.hero-title, .create-title, .lobby-name, .room-name, .preview-name, .go-title {
+  font-family: var(--font-display);
+}
+
+/* ---- left icon rail ---- */
+.has-sidebar .app-main { min-height: 100vh; display: flex; flex-direction: column; padding-left: 84px; }
+.sidebar {
+  position: fixed; left: 0; top: 0; bottom: 0; width: 84px; z-index: 60;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 14px 0 16px;
+  background: linear-gradient(180deg, #f3f4f7 0%, #e9ebf0 100%);
+  border-right: 1px solid var(--line);
+  box-shadow: 1px 0 0 rgba(255,255,255,.6) inset, var(--sh-1);
+}
+.side-logo {
+  background: none; border: none; cursor: pointer; padding: 6px 8px 4px; border-radius: 14px;
+  transition: transform .15s var(--ease), filter .15s var(--ease);
+  filter: drop-shadow(0 2px 5px rgba(16,18,24,.18));
+}
+.side-logo:hover { transform: scale(1.08); filter: drop-shadow(0 3px 8px rgba(16,18,24,.28)); }
+.side-items { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; width: 100%; align-items: center; flex: 1; }
+.side-item {
+  position: relative; width: 64px; padding: 9px 0 7px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  background: none; border: none; cursor: pointer; border-radius: 14px;
+  color: var(--muted); font-family: var(--font-sans);
+  transition: color .15s var(--ease), background .15s var(--ease), transform .12s var(--ease);
+}
+.side-item:hover { color: var(--ink); background: rgba(16,18,24,.05); }
+.side-item:active { transform: scale(.96); }
+.side-item.is-active { color: var(--ink); background: var(--chrome); border: 1px solid var(--chrome-edge); box-shadow: var(--sh-inset-hi), var(--sh-1); }
+.side-ic { position: relative; display: grid; place-items: center; height: 24px; }
+.side-label { font-size: 10.5px; font-weight: 540; letter-spacing: -0.01em; }
+.side-badge {
+  position: absolute; top: -5px; right: -8px;
+  min-width: 15px; height: 15px; padding: 0 4px; border-radius: 999px;
+  background: var(--enemy); color: #fff; font-size: 9.5px; font-weight: 700;
+  display: grid; place-items: center; box-shadow: 0 0 0 2px var(--bg-sheen);
+}
+.side-account { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 50%; margin-top: 8px; transition: transform .15s var(--ease); }
+.side-account:hover { transform: scale(1.07); }
+
+/* ---- star-hole logo mark + wordmark (logo as the "t") ---- */
+.logomark { display: block; flex: none; user-select: none; -webkit-user-drag: none; object-fit: contain; }
+.logomark-glow { filter: drop-shadow(0 2px 6px rgba(16,18,24,.22)); }
+.wm-inline {
+  display: inline-flex; align-items: center;
+  font-family: var(--font-display); font-weight: 700; letter-spacing: -0.05em; line-height: 1; color: var(--ink);
+}
+.wm-part { background: var(--silver-text); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.wm-t { height: 1.42em; width: 1.42em; object-fit: contain; margin: 0 -0.34em -0.06em -0.3em; transform: translateY(-0.06em); }
+.brand:hover .wm-part { filter: brightness(1.05); }
+.brand:hover .wm-t { filter: drop-shadow(0 1px 3px rgba(16,18,24,.25)); }
+
+/* ---- top nav link ---- */
+.topnav-link {
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font-sans); font-size: 14px; font-weight: 500;
+  color: var(--muted); padding: 7px 11px; border-radius: 9px; text-decoration: none;
+  transition: color .15s var(--ease), background .15s var(--ease);
+}
+.topnav-link:hover { color: var(--ink); background: rgba(16,18,24,.05); }
+.topnav-link.is-active { color: var(--ink); background: rgba(16,18,24,.06); }
+
+/* ---- hub banner (Roblox-style hero) ---- */
+.hub-banner {
+  position: relative; border-radius: var(--r-xl); padding: 38px 40px 30px; margin-bottom: 28px;
+  overflow: hidden; min-height: 224px; display: flex; flex-direction: column; justify-content: flex-end;
+  background:
+    radial-gradient(150% 130% at 90% -10%, rgba(255,255,255,.92), rgba(255,255,255,0) 56%),
+    linear-gradient(135deg, #f4f5f8 0%, #e7e9ef 52%, #dadde4 100%);
+  border: 1px solid var(--line); box-shadow: var(--sh-inset-hi), var(--sh-2);
+}
+.hub-banner-art { position: absolute; right: -34px; top: 50%; transform: translateY(-50%); width: 270px; height: 270px; object-fit: contain; opacity: .06; pointer-events: none; }
+.hub-search {
+  position: absolute; top: 26px; right: 30px; z-index: 3;
+  display: flex; align-items: center; gap: 10px; height: 44px; width: min(320px, 42vw); padding: 0 16px;
+  background: rgba(255,255,255,.85); backdrop-filter: blur(8px);
+  border: 1px solid var(--line); border-radius: var(--r-pill); box-shadow: var(--sh-inset-hi), var(--sh-1);
+}
+.hub-search-input { border: none; outline: none; background: none; flex: 1; font-family: var(--font-sans); font-size: 14.5px; color: var(--ink); }
+.hub-search-input::placeholder { color: var(--muted-2); }
+.hub-wordmark { font-size: clamp(44px, 7.4vw, 86px); line-height: .9; }
+.hub-greeting { margin-top: 16px; }
+.hub-home { font-size: clamp(24px, 3vw, 33px); font-weight: 640; letter-spacing: -0.03em; color: var(--ink); }
+.hub-welcome { font-size: 16px; color: var(--muted); margin: 3px 0 0; }
+
+/* ---- shelves ---- */
+.shelf-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.shelf-title { font-size: 19px; font-weight: 700; letter-spacing: -0.025em; color: var(--ink); white-space: nowrap; }
+.shelf-n { color: var(--muted-2); font-weight: 500; }
+.see-all {
+  display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer;
+  font-family: var(--font-sans); font-size: 13.5px; font-weight: 500; color: var(--muted);
+  padding: 4px 6px; border-radius: 8px; transition: color .15s var(--ease), gap .15s var(--ease);
+}
+.see-all:hover { color: var(--ink); gap: 7px; }
+.hub-filters { display: flex; align-items: center; gap: 8px; margin-bottom: 28px; flex-wrap: wrap; }
+.create-pill { margin-left: auto; }
+
+/* ---- friends row ---- */
+.frow { margin-bottom: 36px; }
+.frow-rail { display: flex; gap: 4px; overflow-x: auto; padding: 2px 6px 8px; margin: 0 -6px; }
+.friend {
+  flex: none; width: 92px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  background: none; border: none; cursor: pointer; padding: 8px 2px; border-radius: 14px; transition: background .15s var(--ease);
+}
+.friend:hover { background: rgba(16,18,24,.04); }
+.friend-name { font-size: 12px; font-weight: 560; color: var(--ink); line-height: 1.2; text-align: center; max-width: 88px; }
+.friend-sub { font-size: 10.5px; color: var(--muted-2); max-width: 88px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.friend-sub.playing { color: var(--you); font-weight: 500; }
+.avatar { position: relative; flex: none; }
+.avatar-disc {
+  width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700;
+  box-shadow: inset 0 1.5px 1px rgba(255,255,255,.5), inset 0 -3px 5px rgba(0,0,0,.18), 0 2px 5px rgba(16,18,24,.18);
+  text-transform: uppercase;
+}
+.avatar-status { position: absolute; right: 0; bottom: 0; width: 15px; height: 15px; border-radius: 50%; border: 3px solid var(--bg); }
+.friend-invite .invite-disc {
+  width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center;
+  color: var(--muted); background: var(--surface-2); border: 1.5px dashed var(--line-strong);
+  transition: color .15s var(--ease), border-color .15s var(--ease);
+}
+.friend-invite:hover .invite-disc { color: var(--ink); border-color: var(--ink-soft); }
+
+/* ---- cardless game cards (sit directly on the gray page) ---- */
+.gcard { overflow: visible; background: none; border: none; box-shadow: none; border-radius: var(--r-md); transition: transform .18s var(--ease); }
+.gcard:hover { transform: translateY(-4px); box-shadow: none; }
+.gcard:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+.gcard-thumb { padding: 0; box-shadow: var(--sh-1); transition: box-shadow .22s var(--ease); }
+.gcard:hover .gcard-thumb { box-shadow: var(--sh-3); }
+.gcard-play { inset: 0; }
+.gcard-del { top: 10px; left: 10px; }
+.gcard-remix { top: 10px; right: 10px; }
+.gcard-body { padding: 11px 4px 4px; }
+.gcard-name { font-size: 15.5px; font-weight: 600; letter-spacing: -0.02em; }
+.gcard-players { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+.players-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted-2); flex: none; }
+.players-dot.on { background: var(--you-soft); box-shadow: 0 0 0 2px rgba(34,197,94,.22); animation: pulse 1.6s var(--ease) infinite; }
+
+@media (max-width: 720px) {
+  .hub-search { position: static; width: 100%; margin-bottom: 18px; }
+  .hub-banner { padding-top: 24px; }
+}
+
+/* ============================================================
+   LANDING screen
+   ============================================================ */
+.landing .page-inner { display: flex; flex-direction: column; }
+.lp-hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 28px 0 12px; }
+.lp-eyebrow { margin-top: 22px; }
+.lp-title { font-size: clamp(38px, 5.6vw, 62px); font-weight: 700; letter-spacing: -0.035em; line-height: 1.05; margin-top: 14px; color: var(--ink); max-width: 16ch; text-wrap: balance; }
+.lp-sub { font-size: 17.5px; line-height: 1.55; color: var(--muted); max-width: 60ch; margin: 20px 0 0; text-wrap: pretty; }
+.lp-cta { display: flex; gap: 12px; margin-top: 30px; flex-wrap: wrap; justify-content: center; }
+.lp-feats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 64px; }
+.feat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 24px; box-shadow: var(--sh-inset-hi), var(--sh-1); }
+.feat-ic { width: 44px; height: 44px; border-radius: var(--r-md); display: grid; place-items: center; color: var(--ink); background: var(--chrome); border: 1px solid var(--chrome-edge); box-shadow: var(--sh-inset-hi), var(--sh-1); margin-bottom: 16px; }
+.feat-title { font-size: 17px; font-weight: 620; letter-spacing: -0.02em; }
+.feat-body { font-size: 14.5px; line-height: 1.55; color: var(--muted); margin: 9px 0 0; text-wrap: pretty; }
+.lp-showcase { margin-top: 64px; }
+.lp-showcase-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.lp-showcase-title { font-size: 22px; font-weight: 640; letter-spacing: -0.03em; }
+.lp-showcase-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+.lp-tile { padding: 8px; cursor: pointer; transition: transform .18s var(--ease), box-shadow .22s var(--ease); text-align: left; text-decoration: none; color: inherit; }
+.lp-tile:hover { transform: translateY(-4px); box-shadow: var(--sh-inset-hi), var(--sh-3); }
+.lp-tile-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 6px 4px; }
+.lp-tile-name { font-size: 12.5px; font-weight: 560; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-tile-live { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); flex: none; }
+
+@media (max-width: 880px) {
+  .lp-feats { grid-template-columns: 1fr; }
+  .lp-showcase-grid { grid-template-columns: repeat(2, 1fr); }
+}

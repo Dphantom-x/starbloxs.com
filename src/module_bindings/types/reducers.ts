@@ -7,6 +7,7 @@ import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
 import ApplyRulesPatchReducer from "../apply_rules_patch_reducer";
+import CommitEntitiesReducer from "../commit_entities_reducer";
 import CreateGameReducer from "../create_game_reducer";
 import DebugPlaceReducer from "../debug_place_reducer";
 import DeleteGameReducer from "../delete_game_reducer";
@@ -14,9 +15,12 @@ import JoinGameReducer from "../join_game_reducer";
 import RemixGameReducer from "../remix_game_reducer";
 import ResetGameReducer from "../reset_game_reducer";
 import RespawnReducer from "../respawn_reducer";
+import SetEngineConfigReducer from "../set_engine_config_reducer";
+import SetEngineInputReducer from "../set_engine_input_reducer";
 import SetInputReducer from "../set_input_reducer";
 
 export type ApplyRulesPatchParams = __Infer<typeof ApplyRulesPatchReducer>;
+export type CommitEntitiesParams = __Infer<typeof CommitEntitiesReducer>;
 export type CreateGameParams = __Infer<typeof CreateGameReducer>;
 export type DebugPlaceParams = __Infer<typeof DebugPlaceReducer>;
 export type DeleteGameParams = __Infer<typeof DeleteGameReducer>;
@@ -24,5 +28,7 @@ export type JoinGameParams = __Infer<typeof JoinGameReducer>;
 export type RemixGameParams = __Infer<typeof RemixGameReducer>;
 export type ResetGameParams = __Infer<typeof ResetGameReducer>;
 export type RespawnParams = __Infer<typeof RespawnReducer>;
+export type SetEngineConfigParams = __Infer<typeof SetEngineConfigReducer>;
+export type SetEngineInputParams = __Infer<typeof SetEngineInputReducer>;
 export type SetInputParams = __Infer<typeof SetInputReducer>;
 

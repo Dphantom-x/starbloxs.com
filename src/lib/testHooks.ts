@@ -48,6 +48,17 @@ export function mountTestHooks(): void {
     },
     getEntities: () => stdb.getEntitiesRaw().map(plainRow),
     getPlayers: () => stdb.getPlayersRaw().map(plainRow),
+    // Option-B engine: the current game's live config (parsed) + raw input rows.
+    getEngineConfig: () => {
+      const c = stdb.getEngineConfigRaw();
+      if (!c) return null;
+      try {
+        return JSON.parse(c.config) as Record<string, unknown>;
+      } catch {
+        return null;
+      }
+    },
+    getEngineInputs: () => stdb.getEngineInputsRaw().map(plainRow),
     // Generic reducer call. Reducer accessors are camelCase of the snake_case name.
     callReducer: async (name: string, args?: unknown) => {
       const conn = stdb.getConnection();

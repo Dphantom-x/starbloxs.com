@@ -233,6 +233,40 @@ export function setInput(gameId: string, input: InputState): void {
   conn.reducers.setInput({ gameId: BigInt(gameId), ...input });
 }
 
+/** Option B engine: host commits its authoritative entity set for a game (~30Hz). */
+export function commitEntities(gameId: string, entitiesJson: string): void {
+  if (!conn) return;
+  conn.reducers.commitEntities({ gameId: BigInt(gameId), entities: entitiesJson });
+}
+
+/** Option B engine: publish this client's input for an engine game. */
+export function setEngineInput(gameId: string, inputJson: string): void {
+  if (!conn) return;
+  conn.reducers.setEngineInput({ gameId: BigInt(gameId), input: inputJson });
+}
+
+/** Synced per-player input rows for the current engine game (host reads these). */
+export function getEngineInputsRaw() {
+  if (!conn) return [];
+  const all = [...conn.db.engine_input.iter()];
+  return currentGameId === null ? all : all.filter((r) => r.gameId === currentGameId);
+}
+
+/** Option B engine: write a game's live config (the live-edit path). */
+export function setEngineConfig(gameId: string, configJson: string): void {
+  if (!conn) return;
+  conn.reducers.setEngineConfig({ gameId: BigInt(gameId), config: configJson });
+}
+
+/** The current engine game's live config row (or null). */
+export function getEngineConfigRaw() {
+  if (!conn || currentGameId === null) return null;
+  for (const r of conn.db.engine_config.iter()) {
+    if (r.gameId === currentGameId) return r;
+  }
+  return null;
+}
+
 /** Apply a (client-validated) rules patch directly — the live hot-reload. */
 export function applyRulesPatch(gameId: string, patchJson: string): void {
   if (!conn) return;

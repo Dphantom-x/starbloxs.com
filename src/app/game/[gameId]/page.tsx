@@ -6,14 +6,19 @@ import { useEffect, useRef, useState } from "react";
 import { useStdb } from "@/components/StdbProvider";
 import DemoControls from "@/components/DemoControls";
 import EditChat from "@/components/EditChat";
+import EngineEditChat from "@/components/EngineEditChat";
 import Scoreboard from "@/components/Scoreboard";
 import TouchControls from "@/components/TouchControls";
 import GameOverCard from "@/components/GameOverCard";
+import EngineOverlay from "@/components/EngineOverlay";
 import RoomQR from "@/components/RoomQR";
 import { Conn, Page, BackLink, Icon, Marble } from "@/components/ui";
 import { controlsHint } from "@/lib/rules";
 
 const GameCanvas = dynamic(() => import("@/components/GameCanvas"), {
+  ssr: false,
+});
+const EngineCanvas = dynamic(() => import("@/components/EngineCanvas"), {
   ssr: false,
 });
 
@@ -63,6 +68,7 @@ export default function GameRoom() {
     ? mod.getGamesRaw().find((g) => g.gameId.toString() === gameId)
     : undefined;
   const gameType = game?.gameType ?? "tanks";
+  const isEngine = gameType === "eflappy" || gameType === "etank";
 
   // NB: no `route-fade` here — its transform would make the fixed theater stage
   // anchor to this <main> instead of the viewport (i.e. not truly fullscreen).
@@ -94,14 +100,20 @@ export default function GameRoom() {
       <div className="room-stage-wrap">
         <div className="canvas-stage room-stage">
           <div className="canvas-host game-fill">
-            <GameCanvas gameId={gameId} />
+            {isEngine ? (
+              <EngineCanvas gameId={gameId} gameType={gameType} />
+            ) : (
+              <GameCanvas gameId={gameId} />
+            )}
             <div className="canvas-scan" />
           </div>
 
           {/* slim live scoreboard overlaid on the game */}
-          <div className="stage-overlay stage-score">
-            <Scoreboard gameId={gameId} gameType={gameType} compact />
-          </div>
+          {!isEngine && (
+            <div className="stage-overlay stage-score">
+              <Scoreboard gameId={gameId} gameType={gameType} compact />
+            </div>
+          )}
 
           <span className="canvas-badge mono">800 × 600 · live</span>
 
@@ -129,10 +141,11 @@ export default function GameRoom() {
           </div>
 
           {/* mobile / touch controls (CSS-gated to coarse / narrow screens) */}
-          <TouchControls gameId={gameId} gameType={gameType} />
+          {!isEngine && <TouchControls gameId={gameId} gameType={gameType} />}
 
           {/* flappy game-over card (only when my bird has died) */}
           {gameType === "flappy" && <GameOverCard gameId={gameId} />}
+          {isEngine && <EngineOverlay gameType={gameType} />}
 
           {/* chat drawer — slides in from the right on demand */}
           <div
@@ -140,15 +153,23 @@ export default function GameRoom() {
             data-testid="chat-drawer"
             aria-hidden={!chatOpen}
           >
-            <EditChat
-              gameId={gameId}
-              gameType={gameType}
-              onClose={() => setChatOpen(false)}
-            />
+            {isEngine ? (
+              <EngineEditChat
+                gameId={gameId}
+                gameType={gameType}
+                onClose={() => setChatOpen(false)}
+              />
+            ) : (
+              <EditChat
+                gameId={gameId}
+                gameType={gameType}
+                onClose={() => setChatOpen(false)}
+              />
+            )}
           </div>
         </div>
 
-        <DemoControls gameId={gameId} gameType={gameType} />
+        {!isEngine && <DemoControls gameId={gameId} gameType={gameType} />}
       </div>
     </Page>
   );

@@ -11,6 +11,10 @@ function num(v: unknown, fallback = 0): number {
 function fmt(n: number): string {
   return `${+n.toFixed(1)}`; // 2.0 -> "2", 1.6 -> "1.6"
 }
+/** Engine games carry genre-prefixed types (eflappy/etank) — reduce to the genre. */
+export function genreOf(gameType: string): "flappy" | "tanks" {
+  return gameType === "flappy" || gameType === "eflappy" ? "flappy" : "tanks";
+}
 
 /** Short, human rule chips derived from a live rules row. */
 export function rulesSummary(
@@ -18,10 +22,10 @@ export function rulesSummary(
   r: RulesRow | null | undefined,
   limit = 3
 ): string[] {
-  if (!r) return gameType === "flappy" ? ["Default field"] : ["Default speed"];
+  if (!r) return genreOf(gameType) === "flappy" ? ["Default field"] : ["Default speed"];
   const out: string[] = [];
 
-  if (gameType === "flappy") {
+  if (genreOf(gameType) === "flappy") {
     if (num(r.fieldHeight, 1) > 1.3) out.push("Tall field");
     const g = num(r.gravity, 1);
     if (g <= 0.7) out.push("Low gravity");
@@ -47,14 +51,14 @@ export function rulesSummary(
 
 /** One-line description for the lobby. */
 export function gameBlurb(gameType: string): string {
-  return gameType === "flappy"
+  return genreOf(gameType) === "flappy"
     ? "Flap through the gaps. Most pipes cleared wins."
     : "Drive, bounce shells off walls — last tank standing.";
 }
 
 /** Controls hint shown in the room. */
 export function controlsHint(gameType: string): string {
-  return gameType === "flappy"
+  return genreOf(gameType) === "flappy"
     ? "up / space to flap"
     : "arrow keys to drive · space to fire";
 }

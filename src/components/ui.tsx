@@ -3,10 +3,11 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 
-type IconName =
+export type IconName =
   | "back" | "plus" | "x" | "check" | "copy" | "qr" | "share" | "play"
   | "remix" | "trash" | "dots" | "bolt" | "send" | "users" | "search"
-  | "arrow" | "trophy" | "expand" | "shrink";
+  | "arrow" | "trophy" | "expand" | "shrink"
+  | "home" | "user" | "message" | "avatar" | "cube" | "gear";
 
 export function Icon({
   name,
@@ -50,6 +51,12 @@ export function Icon({
     case "trophy": return <svg {...p}><path d="M7 4h10v4a5 5 0 01-10 0zM7 6H4v1a3 3 0 003 3M17 6h3v1a3 3 0 01-3 3M9 19h6M10 15.5V19M14 15.5V19" /></svg>;
     case "expand": return <svg {...p}><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" /></svg>;
     case "shrink": return <svg {...p}><path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5" /></svg>;
+    case "home": return <svg {...p}><path d="M3.5 11.5L12 4l8.5 7.5" /><path d="M5.5 10v9h13v-9" /><path d="M10 19v-5h4v5" /></svg>;
+    case "user": return <svg {...p}><circle cx="12" cy="8.4" r="3.4" /><path d="M5.5 20a6.5 6.5 0 0113 0" /></svg>;
+    case "message": return <svg {...p}><path d="M5 5.5h14a1 1 0 011 1V15a1 1 0 01-1 1H9l-4 3.4V6.5a1 1 0 011-1z" /></svg>;
+    case "avatar": return <svg {...p}><circle cx="12" cy="5" r="2.7" /><path d="M12 7.7v6M6.7 10.6h10.6M12 13.7L8.3 20M12 13.7L15.7 20" /></svg>;
+    case "cube": return <svg {...p}><path d="M12 3.2l8 4v9.6l-8 4-8-4V7.2z" /><path d="M4.2 7.4L12 11.4l7.8-4M12 11.4V20.6" /></svg>;
+    case "gear": return <svg {...p}><circle cx="12" cy="12" r="3.1" /><path d="M12 2.6v3.1M12 18.3v3.1M21.4 12h-3.1M5.7 12H2.6M18.6 5.4l-2.2 2.2M7.6 16.4l-2.2 2.2M18.6 18.6l-2.2-2.2M7.6 7.6L5.4 5.4" /></svg>;
     default: return null;
   }
 }
@@ -76,6 +83,21 @@ export function Conn({
       <span className="conn-dot" />
       {label}
     </span>
+  );
+}
+
+export type Toast = { id: number; msg: string; icon?: IconName; tone?: "good" | "bad" };
+
+export function Toasts({ items }: { items: Toast[] }) {
+  return (
+    <div className="toast-wrap">
+      {items.map((t) => (
+        <div key={t.id} className={"toast pop-in " + (t.tone ?? "")}>
+          {t.icon && <Icon name={t.icon} size={16} />}
+          <span>{t.msg}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -114,13 +136,69 @@ export function BackLink({
   );
 }
 
-export function LogoMark({ size = 30 }: { size?: number }) {
+// The Starblox star-hole mark (processed transparent PNG in /public).
+export function LogoMark({ size = 30, glow = false }: { size?: number; glow?: boolean }) {
   return (
-    <span className="brick" style={{ width: size, height: size }}>
-      <span className="stud" />
-      <span className="stud" />
-      <span className="stud" />
-      <span className="stud" />
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/logo.png"
+      alt="Starblox"
+      width={size}
+      height={size}
+      className={"logomark" + (glow ? " logomark-glow" : "")}
+      style={{ width: size, height: size }}
+      draggable={false}
+    />
+  );
+}
+
+// Wordmark with the logo standing in for the "t" in Starblox.
+export function Wordmark({ size = 20, className = "" }: { size?: number; className?: string }) {
+  return (
+    <span className={"wm-inline " + className} style={{ fontSize: size }}>
+      <span className="wm-part">S</span>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/logo.png" alt="t" className="wm-t" draggable={false} />
+      <span className="wm-part">arblox</span>
+    </span>
+  );
+}
+
+// Colored avatar disc with initials + an optional status ring.
+export function Avatar({
+  name,
+  c1,
+  c2,
+  status,
+  size = 38,
+}: {
+  name: string;
+  c1: string;
+  c2: string;
+  status?: "in" | "online" | "idle" | "offline";
+  size?: number;
+}) {
+  const initials = name
+    .split(/\s+/)
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("");
+  const statusColor =
+    status === "in" || status === "online"
+      ? "var(--you-soft)"
+      : status === "idle"
+        ? "var(--flap-you)"
+        : "var(--muted-2)";
+  return (
+    <span className="avatar" style={{ width: size, height: size }}>
+      <span
+        className="avatar-disc"
+        style={{ background: `linear-gradient(160deg, ${c1}, ${c2})`, fontSize: size * 0.4 }}
+      >
+        {initials}
+      </span>
+      {status && <span className="avatar-status" style={{ background: statusColor }} />}
     </span>
   );
 }
@@ -133,7 +211,8 @@ export function GameThumb({
   type: string;
   size?: "card" | "lg" | "mini";
 }) {
-  if (type === "flappy") {
+  // Engine games carry genre-prefixed types (eflappy/etank) — show their genre.
+  if (type === "flappy" || type === "eflappy") {
     return (
       <div className={"thumb thumb-" + size} data-type="flappy">
         <div className="thumb-sky">
