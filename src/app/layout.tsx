@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Bricolage_Grotesque } from "next/font/google";
+import { Geist, Geist_Mono, Bricolage_Grotesque, Unbounded } from "next/font/google";
 import "./globals.css";
 import StdbProvider from "@/components/StdbProvider";
 import AppShell from "@/components/AppShell";
@@ -20,6 +20,13 @@ const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
 });
 
+// Display face for the Starblox wordmark (the brand type).
+const unbounded = Unbounded({
+  variable: "--font-unbounded",
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
+});
+
 export const metadata: Metadata = {
   title: "Starblox",
   description:
@@ -32,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable}`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} ${unbounded.variable}`}>
       <body>
         <StdbProvider>
           <AppShell>{children}</AppShell>

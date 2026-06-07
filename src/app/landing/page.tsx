@@ -1,15 +1,15 @@
 "use client";
 
-// Landing / "what is Starblox" page — the rundown (hackathon3.1 design). A
-// two-column hero (copy + an auto-looping clip carousel), a "How it works" strip,
-// the dark "why" band (the two hurdles + SpacetimeDB), and a showcase. The games
-// hub stays at "/". Ported from the design — clip slides are believable mocks;
-// drop real <video> srcs into CLIPS when the recordings are ready.
+// Landing / "what is Starblox" page — the rundown (hackathon3.1 design, latest).
+// Big brand-head wordmark with a faded ghost logo behind it, a two-column hero
+// (copy + auto-looping clip carousel) with the Instagram link in the CTA row, a
+// "How it works" strip, the light "why" band (two hurdles + SpacetimeDB), and a
+// showcase. No top bar / sidebar here (full-width marketing page).
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import QRCode from "react-qr-code";
 import { useStdb } from "@/components/StdbProvider";
-import { Icon, Marble, GameThumb, Page, Avatar, type IconName } from "@/components/ui";
+import { Icon, Marble, GameThumb, Page, Avatar, Wordmark, InstagramLink, type IconName } from "@/components/ui";
 import { FRIENDS } from "@/lib/friends";
 
 type Clip = { id: "describe" | "build" | "publish"; src: string | null; kicker: string; label: string; cap: string };
@@ -175,30 +175,45 @@ function HowItWorks() {
   );
 }
 
+const HURDLES: { n: string; icon: IconName; title: string; body: string }[] = [
+  { n: "01", icon: "bolt", title: "Starting", body: "No code, no engine to learn, no blank page. Describe it and it exists." },
+  { n: "02", icon: "users", title: "Multiplayer", body: "Real-time sync, servers, netcode — the brutal part, just there. Free, instant, for every game." },
+];
+
 function WhyBand() {
   return (
     <section className="lp-why fade-up" style={{ animationDelay: ".14s" }}>
       <div className="why-inner">
-        <h2 className="why-title">
-          Making games is hard.
-          <br />
-          We removed the two hardest parts.
-        </h2>
+        <div className="why-head">
+          <span className="why-eyebrow">Why Starblox</span>
+          <h2 className="why-title">
+            Making games is hard.
+            <br />
+            We removed the two hardest parts.
+          </h2>
+        </div>
         <div className="why-grid">
-          <div className="why-card">
-            <span className="why-tag">Hurdle 01</span>
-            <h3 className="why-h">Starting</h3>
-            <p className="why-body">No code, no engine to learn, no blank page. Describe it and it exists.</p>
-          </div>
-          <div className="why-card">
-            <span className="why-tag">Hurdle 02</span>
-            <h3 className="why-h">Multiplayer</h3>
-            <p className="why-body">Real-time sync, servers, netcode: the brutal part, just there. Free, instant, for every game.</p>
-          </div>
+          {HURDLES.map((h) => (
+            <div className="why-card" key={h.n}>
+              <span className="why-num">{h.n}</span>
+              <div className="why-card-main">
+                <div className="why-card-top">
+                  <span className="why-ic">
+                    <Icon name={h.icon} size={17} />
+                  </span>
+                  <h3 className="why-h">{h.title}</h3>
+                  <span className="why-status">
+                    <Icon name="check" size={12} /> Handled
+                  </span>
+                </div>
+                <p className="why-body">{h.body}</p>
+              </div>
+            </div>
+          ))}
         </div>
         <div className="why-powered">
           <span className="why-powered-dot" />
-          Powered by <strong>SpacetimeDB</strong>
+          Multiplayer powered by <strong>SpacetimeDB</strong>
         </div>
       </div>
     </section>
@@ -217,26 +232,34 @@ export default function LandingPage() {
   return (
     <Page max={1180} className="landing">
       <section className="lp-hero fade-up">
-        <div className="lp-hero-copy">
-          <div className="eyebrow lp-eyebrow">
-            {connected ? "Live multiplayer" : "Connecting…"} · no downloads
-          </div>
-          <h1 className="lp-title">Games, made and remade by talking.</h1>
-          <p className="lp-sub">
-            Starblox is a multiplayer arcade where every game is built by describing it. Type an idea,
-            play it with friends in seconds, and reshape the rules mid-match — just by asking.
-          </p>
-          <div className="lp-cta">
-            <Link href="/create" className="btn btn-primary btn-lg">
-              <Marble size={20} /> Create with AI
-            </Link>
-            <Link href="/" className="btn btn-chrome btn-lg">
-              <Icon name="play" size={17} /> Browse games
-            </Link>
-          </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" className="lp-hero-ghost" alt="" draggable={false} />
+        <div className="lp-brandhead">
+          <Wordmark size={130} className="lp-brandmark" />
         </div>
-        <div className="lp-hero-clip">
-          <HeroCarousel />
+        <div className="lp-hero-main">
+          <div className="lp-hero-copy">
+            <div className="eyebrow lp-eyebrow">
+              {connected ? "Live multiplayer" : "Connecting…"} · no downloads
+            </div>
+            <h1 className="lp-title">Games, made and remade by talking.</h1>
+            <p className="lp-sub">
+              Starblox is a multiplayer arcade where every game is built by describing it. Type an idea,
+              play it with friends in seconds, and reshape the rules mid-match — just by asking.
+            </p>
+            <div className="lp-cta">
+              <Link href="/create" className="btn btn-primary btn-lg">
+                <Marble size={20} /> Create with AI
+              </Link>
+              <Link href="/" className="btn btn-chrome btn-lg">
+                <Icon name="play" size={17} /> Browse games
+              </Link>
+              <InstagramLink size={26} className="ig-hero" />
+            </div>
+          </div>
+          <div className="lp-hero-clip">
+            <HeroCarousel />
+          </div>
         </div>
       </section>
 

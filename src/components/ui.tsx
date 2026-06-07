@@ -165,17 +165,17 @@ export function Wordmark({ size = 20, className = "" }: { size?: number; classNa
 }
 
 // Instagram link with the classic rainbow gradient (top bar).
-export function InstagramLink() {
+export function InstagramLink({ size = 22, className = "" }: { size?: number; className?: string }) {
   return (
     <a
-      className="ig-link"
+      className={"ig-link " + className}
       href="https://www.instagram.com/ig.aldo_o/"
       target="_blank"
       rel="noopener noreferrer"
       title="Follow @ig.aldo_o on Instagram"
       aria-label="Instagram"
     >
-      <svg width="22" height="22" viewBox="0 0 24 24">
+      <svg width={size} height={size} viewBox="0 0 24 24">
         <defs>
           <radialGradient id="igGrad" cx="30%" cy="107%" r="135%">
             <stop offset="0%" stopColor="#fdf497" />
